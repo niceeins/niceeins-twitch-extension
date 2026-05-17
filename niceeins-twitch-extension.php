@@ -40,6 +40,19 @@ add_action('rest_api_init', function (): void {
 
 function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Response
 {
+    $auth = niceeins_extension_auth_context($request);
+    if ($auth['status'] === 'invalid') {
+        return niceeins_extension_cors_response(new WP_REST_Response([
+            'code' => 'invalid_twitch_token',
+            'message' => 'The Twitch authorization token could not be verified.',
+            'meta' => [
+                'generated_at' => gmdate('c'),
+                'auth' => niceeins_extension_auth_meta($auth),
+                'cache' => ['hit' => false, 'ttl' => 0],
+            ],
+        ], 401));
+    }
+
     if (!class_exists(StreamerRepository::class) || !class_exists(ScheduleRepository::class)) {
         return niceeins_extension_cors_response(new WP_REST_Response([
             'code' => 'streamsync_unavailable',
@@ -47,7 +60,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
         ], 503));
     }
 
-    $resolved = niceeins_extension_resolve_streamer($request);
+    $resolved = niceeins_extension_resolve_streamer($request, $auth);
     if ($resolved['streamer'] === null) {
         return niceeins_extension_cors_response(new WP_REST_Response([
             'code' => 'streamer_not_found',
@@ -55,6 +68,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
             'meta' => [
                 'resolved_by' => $resolved['resolved_by'],
                 'generated_at' => gmdate('c'),
+                'auth' => niceeins_extension_auth_meta($auth),
                 'cache' => ['hit' => false, 'ttl' => 0],
             ],
         ], 404));
@@ -69,6 +83,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
             'meta' => [
                 'resolved_by' => $resolved['resolved_by'],
                 'generated_at' => gmdate('c'),
+                'auth' => niceeins_extension_auth_meta($auth),
                 'cache' => ['hit' => false, 'ttl' => 0],
             ],
         ], 403));
@@ -80,6 +95,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
 
     if (is_array($cached)) {
         $cached['meta']['resolved_by'] = $resolved['resolved_by'];
+        $cached['meta']['auth'] = niceeins_extension_auth_meta($auth);
         $cached['meta']['cache'] = ['hit' => true, 'ttl' => 60];
 
         return niceeins_extension_cors_response(new WP_REST_Response($cached, 200));
@@ -108,6 +124,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
             'resolved_by' => $resolved['resolved_by'],
             'generated_at' => gmdate('c'),
             'schedule_public' => $streamer->schedule_public,
+            'auth' => niceeins_extension_auth_meta($auth),
             'cache' => ['hit' => false, 'ttl' => 60],
         ],
     ];
@@ -120,9 +137,16 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
 /**
  * @return array{streamer: Streamer|null, resolved_by: string}
  */
-function niceeins_extension_resolve_streamer(WP_REST_Request $request): array
+function niceeins_extension_resolve_streamer(WP_REST_Request $request, array $auth): array
 {
     $repo = new StreamerRepository();
+
+    if (isset($auth['channel_id']) && is_string($auth['channel_id']) && $auth['channel_id'] !== '') {
+        return [
+            'streamer' => $repo->findByTwitchId($auth['channel_id']),
+            'resolved_by' => 'twitch_jwt',
+        ];
+    }
 
     $channel_id = trim((string) ($request->get_param('channel_id') ?: ''));
     if ($channel_id !== '') {
@@ -286,9 +310,129 @@ function niceeins_extension_label_for_network(string $network): string
     };
 }
 
+/**
+ * @return array{status: string, channel_id?: string, user_id?: string, role?: string, reason?: string}
+ */
+function niceeins_extension_auth_context(WP_REST_Request $request): array
+{
+    $token = niceeins_extension_bearer_token($request);
+    if ($token === '') {
+        return ['status' => 'missing'];
+    }
+
+    $secret = niceeins_extension_secret();
+    if ($secret === '') {
+        return ['status' => 'unconfigured'];
+    }
+
+    $parts = explode('.', $token);
+    if (count($parts) !== 3) {
+        return ['status' => 'invalid', 'reason' => 'malformed'];
+    }
+
+    $header = niceeins_extension_json_part($parts[0]);
+    $payload = niceeins_extension_json_part($parts[1]);
+    if (!is_array($header) || !is_array($payload) || ($header['alg'] ?? '') !== 'HS256') {
+        return ['status' => 'invalid', 'reason' => 'unsupported_token'];
+    }
+
+    $expected = niceeins_extension_base64url_encode(
+        hash_hmac('sha256', $parts[0] . '.' . $parts[1], $secret, true)
+    );
+    if (!hash_equals($expected, $parts[2])) {
+        return ['status' => 'invalid', 'reason' => 'signature'];
+    }
+
+    if (isset($payload['exp']) && (int) $payload['exp'] < time()) {
+        return ['status' => 'invalid', 'reason' => 'expired'];
+    }
+
+    return array_filter([
+        'status' => 'verified',
+        'channel_id' => isset($payload['channel_id']) ? (string) $payload['channel_id'] : null,
+        'user_id' => isset($payload['user_id']) ? (string) $payload['user_id'] : null,
+        'role' => isset($payload['role']) ? (string) $payload['role'] : null,
+    ], static fn($value): bool => $value !== null && $value !== '');
+}
+
+function niceeins_extension_bearer_token(WP_REST_Request $request): string
+{
+    $header = (string) $request->get_header('authorization');
+    if (preg_match('/^Bearer\s+(.+)$/i', $header, $matches) !== 1) {
+        return '';
+    }
+
+    return trim($matches[1]);
+}
+
+function niceeins_extension_secret(): string
+{
+    $configured = defined('NICEEINS_TWITCH_EXTENSION_SECRET')
+        ? (string) constant('NICEEINS_TWITCH_EXTENSION_SECRET')
+        : (string) get_option('niceeins_twitch_extension_secret', '');
+    $configured = trim($configured);
+    if ($configured === '') {
+        $configured = trim((string) getenv('NICEEINS_TWITCH_EXTENSION_SECRET'));
+    }
+
+    $decoded = base64_decode($configured, true);
+
+    return $decoded !== false ? $decoded : $configured;
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function niceeins_extension_json_part(string $part): ?array
+{
+    $json = niceeins_extension_base64url_decode($part);
+    if ($json === false) {
+        return null;
+    }
+
+    $decoded = json_decode($json, true);
+
+    return is_array($decoded) ? $decoded : null;
+}
+
+/**
+ * @return string|false
+ */
+function niceeins_extension_base64url_decode(string $value)
+{
+    $remainder = strlen($value) % 4;
+    if ($remainder > 0) {
+        $value .= str_repeat('=', 4 - $remainder);
+    }
+
+    return base64_decode(strtr($value, '-_', '+/'), true);
+}
+
+function niceeins_extension_base64url_encode(string $value): string
+{
+    return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+}
+
+/**
+ * @param array<string, mixed> $auth
+ *
+ * @return array<string, mixed>
+ */
+function niceeins_extension_auth_meta(array $auth): array
+{
+    return array_filter([
+        'status' => $auth['status'] ?? 'missing',
+        'resolved_channel' => $auth['channel_id'] ?? null,
+        'role' => $auth['role'] ?? null,
+        'reason' => $auth['reason'] ?? null,
+    ], static fn($value): bool => $value !== null && $value !== '');
+}
+
 function niceeins_extension_cors_response(WP_REST_Response $response): WP_REST_Response
 {
     $response->header('Access-Control-Allow-Origin', '*');
+    $response->header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    $response->header('Vary', 'Authorization');
     $response->header('Cache-Control', 'max-age=60, public');
 
     return $response;

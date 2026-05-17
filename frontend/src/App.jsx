@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
+const MAX_UPCOMING = 3
 
 function getFallbackParams() {
   const params = new URLSearchParams(window.location.search)
@@ -14,6 +15,13 @@ function getFallbackParams() {
   return query
 }
 
+function buildPanelUrl(query) {
+  const params = new URLSearchParams(query)
+  if (!params.get('limit')) params.set('limit', '5')
+
+  return `${API_URL}?${params.toString()}`
+}
+
 function formatDate(value) {
   if (!value) return null
 
@@ -21,6 +29,15 @@ function formatDate(value) {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function formatLiveSince(value) {
+  if (!value) return null
+
+  return new Intl.DateTimeFormat('de-DE', {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value))
@@ -36,11 +53,13 @@ function App() {
     let cancelled = false
     const fallbackQuery = getFallbackParams()
 
-    const loadPanel = (query) => {
+    const loadPanel = (query, token = '') => {
       setLoading(true)
       setError(null)
 
-      fetch(`${API_URL}?${query.toString()}`)
+      fetch(buildPanelUrl(query), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
         .then(async (response) => {
           const payload = await response.json()
           if (!response.ok) {
@@ -67,7 +86,7 @@ function App() {
       window.Twitch.ext.onAuthorized((auth) => {
         const query = getFallbackParams()
         if (auth.channelId) query.set('channel_id', auth.channelId)
-        loadPanel(query)
+        loadPanel(query, auth.token || '')
       })
 
       if (fallbackQuery.toString()) {
@@ -84,9 +103,19 @@ function App() {
 
   const accent = data?.streamer?.accent_color || '#9146ff'
   const nextStream = data?.next_stream
+  const visibleUpcoming = data?.upcoming_streams?.slice(1, 1 + MAX_UPCOMING) || []
+  const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
+  const liveSince = formatLiveSince(data?.live?.since)
 
   if (loading) {
-    return <main className={`panel panel-${theme}`}>Lade Panel...</main>
+    return (
+      <main className={`panel panel-${theme}`}>
+        <section className="state">
+          <strong>Panel wird geladen</strong>
+          <span>NiceEins synchronisiert die Streamdaten.</span>
+        </section>
+      </main>
+    )
   }
 
   if (error) {
@@ -118,28 +147,30 @@ function App() {
           <img className="avatar" src={data.streamer.profile_image_url} alt="" />
         )}
         <div>
-          <h1>{data.streamer.display_name || data.streamer.twitch_login}</h1>
+          <h1>{displayName}</h1>
           {data.streamer.twitch_login && <p className="subtitle">twitch.tv/{data.streamer.twitch_login}</p>}
         </div>
         {data.live?.is_live && <span className="live">Live</span>}
       </section>
 
       <section className="card">
-        <span className="eyebrow">Nächster Stream</span>
+        <div className="card-head">
+          <span className="eyebrow">Nächster Stream</span>
+          {nextStream?.category?.name && <span className="pill">{nextStream.category.name}</span>}
+        </div>
         {nextStream ? (
           <>
             <strong>{formatDate(nextStream.starts_at_local || nextStream.starts_at)}</strong>
             <p>{nextStream.title || 'Stream'}</p>
-            {nextStream.category?.name && <small>{nextStream.category.name}</small>}
           </>
         ) : (
           <p>Aktuell ist kein öffentlicher Stream geplant.</p>
         )}
       </section>
 
-      {data.upcoming_streams?.length > 1 && (
+      {visibleUpcoming.length > 0 && (
         <section className="list">
-          {data.upcoming_streams.slice(1, 4).map((stream) => (
+          {visibleUpcoming.map((stream) => (
             <article key={stream.id} className="stream">
               <span>{formatDate(stream.starts_at_local || stream.starts_at)}</span>
               <strong>{stream.title || 'Stream'}</strong>
@@ -153,7 +184,9 @@ function App() {
         <section className="status">
           <span>Status</span>
           <strong>{data.live.is_live ? data.live.title || 'Live auf Twitch' : 'Aktuell offline'}</strong>
-          {data.live.game && <small>{data.live.game}</small>}
+          {(data.live.game || liveSince) && (
+            <small>{[data.live.game, liveSince ? `seit ${liveSince}` : null].filter(Boolean).join(' · ')}</small>
+          )}
         </section>
       )}
 
