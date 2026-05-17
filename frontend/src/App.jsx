@@ -307,10 +307,7 @@ function App() {
         {data.streamer.profile_image_url && (
           <img className="avatar" src={data.streamer.profile_image_url} alt="" />
         )}
-        <div>
-          <h1>{displayName}</h1>
-          {data.streamer.twitch_login && <p className="subtitle">twitch.tv/{data.streamer.twitch_login}</p>}
-        </div>
+        <h1>{displayName}</h1>
       </section>
 
       <nav className="tabs" aria-label="Panel Bereiche">

@@ -43,35 +43,29 @@ body {
 
 .profile {
   display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 9px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
   align-items: center;
   min-width: 0;
   padding-bottom: 0;
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   object-fit: cover;
   background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .profile h1 {
   margin: 0;
-  font-size: 17px;
-  line-height: 1.1;
+  font-size: 16px;
+  line-height: 1;
   letter-spacing: 0;
-  overflow-wrap: anywhere;
-}
-
-.subtitle {
-  min-width: 0;
-  margin: 0;
-  font-size: 11px;
-  color: var(--muted);
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tabs {
@@ -446,16 +440,16 @@ body {
   }
 
   .profile {
-    grid-template-columns: 34px 1fr;
+    grid-template-columns: 26px minmax(0, 1fr);
   }
 
   .avatar {
-    width: 34px;
-    height: 34px;
+    width: 26px;
+    height: 26px;
   }
 
   .profile h1 {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .links {
@@ -470,12 +464,12 @@ body {
   }
 
   .avatar {
-    width: 34px;
-    height: 34px;
+    width: 26px;
+    height: 26px;
   }
 
   .profile h1 {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .tab-panel {
