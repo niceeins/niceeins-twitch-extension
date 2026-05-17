@@ -4,6 +4,7 @@ import './App.css'
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
 const MAX_UPCOMING = 3
 const TWITCH_HOST_PATTERN = /(^|\.)twitch\.tv$/i
+const DISCORD_HOST_PATTERN = /(^|\.)discord(?:app)?\.com$|^discord\.gg$/i
 
 function getFallbackParams() {
   const params = new URLSearchParams(window.location.search)
@@ -43,6 +44,24 @@ function isTwitchLink(link) {
   } catch {
     return false
   }
+}
+
+function isDiscordLink(link) {
+  if (link.network === 'discord') return true
+
+  try {
+    return DISCORD_HOST_PATTERN.test(new URL(link.url).hostname)
+  } catch {
+    return false
+  }
+}
+
+function DiscordIcon() {
+  return (
+    <svg className="discord-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M18.7 5.4A15.1 15.1 0 0 0 15 4.2l-.2.4a13.8 13.8 0 0 1 3.3 1.6 11.6 11.6 0 0 0-9.1 0 13.8 13.8 0 0 1 3.3-1.6l-.2-.4a15.1 15.1 0 0 0-3.7 1.2C6.1 8.8 5.5 12.1 5.8 15.4a15 15 0 0 0 4.5 2.3l.6-1a9.6 9.6 0 0 1-1.4-.7l.3-.2a10.8 10.8 0 0 0 9.4 0l.3.2a9.6 9.6 0 0 1-1.4.7l.6 1a15 15 0 0 0 4.5-2.3c.4-3.8-.7-7-3.1-10Zm-7.8 8.1c-.7 0-1.3-.7-1.3-1.5s.6-1.5 1.3-1.5 1.3.7 1.3 1.5-.6 1.5-1.3 1.5Zm4.7 0c-.7 0-1.3-.7-1.3-1.5s.6-1.5 1.3-1.5 1.3.7 1.3 1.5-.6 1.5-1.3 1.5Z" />
+    </svg>
+  )
 }
 
 function CategoryArt({ stream }) {
@@ -128,7 +147,8 @@ function App() {
   const nextStream = data?.next_stream
   const visibleUpcoming = data?.upcoming_streams?.slice(1, 1 + MAX_UPCOMING) || []
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
-  const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link)).slice(0, 5) || []
+  const discordLink = data?.links?.find(isDiscordLink)
+  const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link) && !isDiscordLink(link)).slice(0, 5) || []
 
   if (loading) {
     return (
@@ -171,7 +191,20 @@ function App() {
         )}
         <div>
           <h1>{displayName}</h1>
-          {data.streamer.twitch_login && <p className="subtitle">twitch.tv/{data.streamer.twitch_login}</p>}
+          <div className="profile-links">
+            {data.streamer.twitch_login && <p className="subtitle">twitch.tv/{data.streamer.twitch_login}</p>}
+            {discordLink && (
+              <a
+                className="discord-link"
+                href={discordLink.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Discord extern öffnen"
+              >
+                <DiscordIcon />
+              </a>
+            )}
+          </div>
         </div>
       </section>
 

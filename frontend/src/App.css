@@ -67,10 +67,39 @@ body {
 }
 
 .subtitle {
-  margin: 3px 0 0;
+  min-width: 0;
+  margin: 0;
   font-size: 12px;
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+
+.profile-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 3px;
+}
+
+.discord-link {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-strong));
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: #fff;
+  text-decoration: none;
+}
+
+.discord-icon {
+  width: 19px;
+  height: 19px;
+  fill: currentColor;
 }
 
 .card {
