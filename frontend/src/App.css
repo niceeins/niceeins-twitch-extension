@@ -43,16 +43,16 @@ body {
 
 .profile {
   display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 10px;
+  grid-template-columns: 36px 1fr;
+  gap: 9px;
   align-items: center;
   min-width: 0;
-  padding-bottom: 2px;
+  padding-bottom: 0;
 }
 
 .avatar {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   object-fit: cover;
   background: color-mix(in srgb, var(--accent) 22%, transparent);
@@ -60,7 +60,7 @@ body {
 
 .profile h1 {
   margin: 0;
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1.1;
   letter-spacing: 0;
   overflow-wrap: anywhere;
@@ -69,39 +69,80 @@ body {
 .subtitle {
   min-width: 0;
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
   overflow-wrap: anywhere;
 }
 
-.profile-links {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-  margin-top: 3px;
-}
-
-.discord-link {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: var(--surface-strong);
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--surface);
   border: 1px solid var(--border);
-  color: inherit;
-  text-decoration: none;
 }
 
-.discord-icon {
-  display: block;
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
+.tab {
+  min-width: 0;
+  min-height: 28px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.tab-active {
+  background: var(--accent);
+  color: white;
+}
+
+.tab-panel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+
+.tab-panel-next {
+  animation-name: slide-in-next;
+}
+
+.tab-panel-previous {
+  animation-name: slide-in-previous;
+}
+
+@keyframes slide-in-next {
+  from {
+    opacity: 0.62;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-previous {
+  from {
+    opacity: 0.62;
+    transform: translateX(-18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .card {
@@ -329,6 +370,10 @@ body {
   overflow-wrap: anywhere;
 }
 
+.button-discord {
+  background: #5865f2;
+}
+
 .button span:first-child {
   min-width: 0;
 }
@@ -351,6 +396,10 @@ body {
   text-align: center;
 }
 
+.state-compact {
+  margin: 0;
+}
+
 .state strong,
 .state span {
   display: block;
@@ -368,16 +417,16 @@ body {
   }
 
   .profile {
-    grid-template-columns: 38px 1fr;
+    grid-template-columns: 34px 1fr;
   }
 
   .avatar {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
   }
 
   .profile h1 {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .links {
@@ -392,12 +441,16 @@ body {
   }
 
   .avatar {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
   }
 
   .profile h1 {
-    font-size: 18px;
+    font-size: 16px;
+  }
+
+  .tab-panel {
+    gap: 8px;
   }
 
   .card,

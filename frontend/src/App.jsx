@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
@@ -6,6 +6,11 @@ const MAX_UPCOMING = 3
 const MAX_ANNOUNCEMENTS = 3
 const TWITCH_HOST_PATTERN = /(^|\.)twitch\.tv$/i
 const DISCORD_HOST_PATTERN = /(^|\.)discord(?:app)?\.com$|^discord\.gg$/i
+const TABS = [
+  { id: 'plan', label: 'Plan' },
+  { id: 'links', label: 'Links' },
+  { id: 'commands', label: 'Chat' },
+]
 
 function getFallbackParams() {
   const params = new URLSearchParams(window.location.search)
@@ -55,14 +60,6 @@ function isDiscordLink(link) {
   } catch {
     return false
   }
-}
-
-function DiscordIcon() {
-  return (
-    <svg className="discord-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M18.7 5.4A15.1 15.1 0 0 0 15 4.2l-.2.4a13.8 13.8 0 0 1 3.3 1.6 11.6 11.6 0 0 0-9.1 0 13.8 13.8 0 0 1 3.3-1.6l-.2-.4a15.1 15.1 0 0 0-3.7 1.2C6.1 8.8 5.5 12.1 5.8 15.4a15 15 0 0 0 4.5 2.3l.6-1a9.6 9.6 0 0 1-1.4-.7l.3-.2a10.8 10.8 0 0 0 9.4 0l.3.2a9.6 9.6 0 0 1-1.4.7l.6 1a15 15 0 0 0 4.5-2.3c.4-3.8-.7-7-3.1-10Zm-7.8 8.1c-.7 0-1.3-.7-1.3-1.5s.6-1.5 1.3-1.5 1.3.7 1.3 1.5-.6 1.5-1.3 1.5Zm4.7 0c-.7 0-1.3-.7-1.3-1.5s.6-1.5 1.3-1.5 1.3.7 1.3 1.5-.6 1.5-1.3 1.5Z" />
-    </svg>
-  )
 }
 
 function CategoryArt({ stream }) {
@@ -128,6 +125,9 @@ function App() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('plan')
+  const [slideDirection, setSlideDirection] = useState('next')
+  const touchStartX = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -188,6 +188,34 @@ function App() {
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
   const discordLink = data?.links?.find(isDiscordLink)
   const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link) && !isDiscordLink(link)).slice(0, 5) || []
+  const activeTabIndex = TABS.findIndex((tab) => tab.id === activeTab)
+
+  const changeTab = (tabId) => {
+    const nextIndex = TABS.findIndex((tab) => tab.id === tabId)
+    if (nextIndex < 0 || nextIndex === activeTabIndex) return
+
+    setSlideDirection(nextIndex > activeTabIndex ? 'next' : 'previous')
+    setActiveTab(tabId)
+  }
+
+  const handleTouchStart = (event) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null
+  }
+
+  const handleTouchEnd = (event) => {
+    if (touchStartX.current === null) return
+
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current
+    const deltaX = endX - touchStartX.current
+    touchStartX.current = null
+
+    if (Math.abs(deltaX) < 45) return
+
+    const nextIndex = deltaX < 0 ? activeTabIndex + 1 : activeTabIndex - 1
+    if (nextIndex >= 0 && nextIndex < TABS.length) {
+      changeTab(TABS[nextIndex].id)
+    }
+  }
 
   if (loading) {
     return (
@@ -230,78 +258,122 @@ function App() {
         )}
         <div>
           <h1>{displayName}</h1>
-          <div className="profile-links">
-            {data.streamer.twitch_login && <p className="subtitle">twitch.tv/{data.streamer.twitch_login}</p>}
+          {data.streamer.twitch_login && <p className="subtitle">twitch.tv/{data.streamer.twitch_login}</p>}
+        </div>
+      </section>
+
+      <nav className="tabs" aria-label="Panel Bereiche">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            className={tab.id === activeTab ? 'tab tab-active' : 'tab'}
+            type="button"
+            onClick={() => changeTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <section
+        key={activeTab}
+        className={`tab-panel tab-panel-${slideDirection}`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {activeTab === 'plan' && (
+          <>
+            <AnnouncementList announcements={announcements} />
+
+            <section className="card">
+              <div className="card-head">
+                <span className="eyebrow">Nächster Stream</span>
+                {nextStream?.category?.name && <span className="pill">{nextStream.category.name}</span>}
+              </div>
+              {nextStream ? (
+                <div className="featured-stream">
+                  <CategoryArt stream={nextStream} />
+                  <div>
+                    <strong>{formatDate(nextStream.starts_at_local || nextStream.starts_at)}</strong>
+                    <p>{nextStream.title || 'Stream'}</p>
+                    {nextStream.category?.name && <small>{nextStream.category.name}</small>}
+                  </div>
+                </div>
+              ) : (
+                <p>Aktuell ist kein öffentlicher Stream geplant.</p>
+              )}
+            </section>
+
+            {visibleUpcoming.length > 0 && (
+              <section className="list">
+                {visibleUpcoming.map((stream) => (
+                  <article key={stream.id} className="stream">
+                    <CategoryArt stream={stream} />
+                    <div>
+                      <span>{formatDate(stream.starts_at_local || stream.starts_at)}</span>
+                      <strong>{stream.title || 'Stream'}</strong>
+                      {stream.category?.name && <small>{stream.category.name}</small>}
+                    </div>
+                  </article>
+                ))}
+              </section>
+            )}
+          </>
+        )}
+
+        {activeTab === 'links' && (
+          <>
             {discordLink && (
               <a
-                className="discord-link"
+                className="button button-discord"
                 href={discordLink.url}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Discord extern öffnen"
               >
-                <DiscordIcon />
+                <span>Discord</span>
+                <span className="external" aria-hidden="true">
+                  ↗
+                </span>
               </a>
             )}
-          </div>
-        </div>
-      </section>
 
-      <AnnouncementList announcements={announcements} />
+            {visibleLinks.length > 0 && (
+              <nav className="links" aria-label="Community Links">
+                {visibleLinks.map((link) => (
+                  <a
+                    key={`${link.network}-${link.url}`}
+                    className="button"
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`${link.label} extern öffnen`}
+                  >
+                    <span>{link.label}</span>
+                    <span className="external" aria-hidden="true">
+                      ↗
+                    </span>
+                  </a>
+                ))}
+              </nav>
+            )}
 
-      <section className="card">
-        <div className="card-head">
-          <span className="eyebrow">Nächster Stream</span>
-          {nextStream?.category?.name && <span className="pill">{nextStream.category.name}</span>}
-        </div>
-        {nextStream ? (
-          <div className="featured-stream">
-            <CategoryArt stream={nextStream} />
-            <div>
-              <strong>{formatDate(nextStream.starts_at_local || nextStream.starts_at)}</strong>
-              <p>{nextStream.title || 'Stream'}</p>
-              {nextStream.category?.name && <small>{nextStream.category.name}</small>}
-            </div>
-          </div>
-        ) : (
-          <p>Aktuell ist kein öffentlicher Stream geplant.</p>
+            {!discordLink && visibleLinks.length === 0 && (
+              <section className="state state-compact">
+                <strong>Keine Links</strong>
+                <span>Für diesen Channel sind keine öffentlichen Links hinterlegt.</span>
+              </section>
+            )}
+          </>
+        )}
+
+        {activeTab === 'commands' && (
+          <section className="state state-compact">
+            <strong>Chat-Kommandos</strong>
+            <span>Dieser Bereich ist vorbereitet.</span>
+          </section>
         )}
       </section>
-
-      {visibleUpcoming.length > 0 && (
-        <section className="list">
-          {visibleUpcoming.map((stream) => (
-            <article key={stream.id} className="stream">
-              <CategoryArt stream={stream} />
-              <div>
-                <span>{formatDate(stream.starts_at_local || stream.starts_at)}</span>
-                <strong>{stream.title || 'Stream'}</strong>
-                {stream.category?.name && <small>{stream.category.name}</small>}
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
-
-      {visibleLinks.length > 0 && (
-        <nav className="links" aria-label="Community Links">
-          {visibleLinks.map((link) => (
-            <a
-              key={`${link.network}-${link.url}`}
-              className="button"
-              href={link.url}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`${link.label} extern öffnen`}
-            >
-              <span>{link.label}</span>
-              <span className="external" aria-hidden="true">
-                ↗
-              </span>
-            </a>
-          ))}
-        </nav>
-      )}
     </main>
   )
 }
