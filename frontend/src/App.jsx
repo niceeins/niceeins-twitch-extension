@@ -3,6 +3,7 @@ import './App.css'
 
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
 const MAX_UPCOMING = 3
+const TWITCH_HOST_PATTERN = /(^|\.)twitch\.tv$/i
 
 function getFallbackParams() {
   const params = new URLSearchParams(window.location.search)
@@ -34,13 +35,35 @@ function formatDate(value) {
   }).format(new Date(value))
 }
 
-function formatLiveSince(value) {
-  if (!value) return null
+function isTwitchLink(link) {
+  if (link.network === 'twitch') return true
 
-  return new Intl.DateTimeFormat('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
+  try {
+    return TWITCH_HOST_PATTERN.test(new URL(link.url).hostname)
+  } catch {
+    return false
+  }
+}
+
+function CategoryArt({ stream }) {
+  const categoryName = stream.category?.name || 'Stream'
+  const boxArtUrl = stream.category?.box_art_url
+
+  return (
+    <span className="box-art" aria-hidden="true">
+      <span className="box-art-fallback">{categoryName.charAt(0).toUpperCase()}</span>
+      {boxArtUrl && (
+        <img
+          src={boxArtUrl}
+          alt=""
+          loading="lazy"
+          onError={(event) => {
+            event.currentTarget.hidden = true
+          }}
+        />
+      )}
+    </span>
+  )
 }
 
 function App() {
@@ -105,7 +128,7 @@ function App() {
   const nextStream = data?.next_stream
   const visibleUpcoming = data?.upcoming_streams?.slice(1, 1 + MAX_UPCOMING) || []
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
-  const liveSince = formatLiveSince(data?.live?.since)
+  const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link)).slice(0, 5) || []
 
   if (loading) {
     return (
@@ -150,7 +173,6 @@ function App() {
           <h1>{displayName}</h1>
           {data.streamer.twitch_login && <p className="subtitle">twitch.tv/{data.streamer.twitch_login}</p>}
         </div>
-        {data.live?.is_live && <span className="live">Live</span>}
       </section>
 
       <section className="card">
@@ -159,10 +181,14 @@ function App() {
           {nextStream?.category?.name && <span className="pill">{nextStream.category.name}</span>}
         </div>
         {nextStream ? (
-          <>
-            <strong>{formatDate(nextStream.starts_at_local || nextStream.starts_at)}</strong>
-            <p>{nextStream.title || 'Stream'}</p>
-          </>
+          <div className="featured-stream">
+            <CategoryArt stream={nextStream} />
+            <div>
+              <strong>{formatDate(nextStream.starts_at_local || nextStream.starts_at)}</strong>
+              <p>{nextStream.title || 'Stream'}</p>
+              {nextStream.category?.name && <small>{nextStream.category.name}</small>}
+            </div>
+          </div>
         ) : (
           <p>Aktuell ist kein öffentlicher Stream geplant.</p>
         )}
@@ -172,27 +198,20 @@ function App() {
         <section className="list">
           {visibleUpcoming.map((stream) => (
             <article key={stream.id} className="stream">
-              <span>{formatDate(stream.starts_at_local || stream.starts_at)}</span>
-              <strong>{stream.title || 'Stream'}</strong>
-              {stream.category?.name && <small>{stream.category.name}</small>}
+              <CategoryArt stream={stream} />
+              <div>
+                <span>{formatDate(stream.starts_at_local || stream.starts_at)}</span>
+                <strong>{stream.title || 'Stream'}</strong>
+                {stream.category?.name && <small>{stream.category.name}</small>}
+              </div>
             </article>
           ))}
         </section>
       )}
 
-      {data.live && (
-        <section className="status">
-          <span>Status</span>
-          <strong>{data.live.is_live ? data.live.title || 'Live auf Twitch' : 'Aktuell offline'}</strong>
-          {(data.live.game || liveSince) && (
-            <small>{[data.live.game, liveSince ? `seit ${liveSince}` : null].filter(Boolean).join(' · ')}</small>
-          )}
-        </section>
-      )}
-
-      {data.links?.length > 0 && (
+      {visibleLinks.length > 0 && (
         <nav className="links" aria-label="Community Links">
-          {data.links.slice(0, 5).map((link) => (
+          {visibleLinks.map((link) => (
             <a
               key={`${link.network}-${link.url}`}
               className="button"

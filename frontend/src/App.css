@@ -43,7 +43,7 @@ body {
 
 .profile {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
+  grid-template-columns: 44px 1fr;
   gap: 10px;
   align-items: center;
   min-width: 0;
@@ -73,16 +73,6 @@ body {
   overflow-wrap: anywhere;
 }
 
-.live {
-  padding: 4px 7px;
-  border-radius: 6px;
-  background: #eb0400;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
 .card {
   border-radius: 8px;
   padding: 12px;
@@ -98,7 +88,6 @@ body {
 }
 
 .eyebrow,
-.status span,
 .stream span {
   display: block;
   font-size: 11px;
@@ -125,13 +114,11 @@ body {
 
 .card strong {
   display: block;
-  margin-top: 6px;
   font-size: 18px;
   line-height: 1.2;
 }
 
 .card p,
-.status strong,
 .stream strong {
   margin: 6px 0 0;
   font-size: 14px;
@@ -140,7 +127,6 @@ body {
 }
 
 .card small,
-.status small,
 .stream small {
   display: block;
   margin-top: 4px;
@@ -154,8 +140,46 @@ body {
   gap: 8px;
 }
 
+.featured-stream,
+.stream {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.box-art {
+  position: relative;
+  display: block;
+  width: 40px;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 46%, transparent), transparent),
+    var(--surface-strong);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.box-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.box-art-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-size: 17px;
+  font-weight: 900;
+}
+
 .stream,
-.status,
 .state {
   border-radius: 8px;
   padding: 11px;
@@ -231,11 +255,6 @@ body {
     font-size: 18px;
   }
 
-  .live {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
-
   .links {
     grid-template-columns: 1fr;
   }
@@ -258,7 +277,6 @@ body {
 
   .card,
   .stream,
-  .status,
   .state {
     padding: 9px;
   }
@@ -268,10 +286,19 @@ body {
   }
 
   .card p,
-  .status strong,
   .stream strong {
     margin-top: 4px;
     font-size: 13px;
+  }
+
+  .featured-stream,
+  .stream {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .box-art {
+    width: 34px;
   }
 
   .stream:nth-child(n + 3) {
