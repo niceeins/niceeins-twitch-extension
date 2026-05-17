@@ -356,8 +356,8 @@ body {
 .button {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 7px;
   min-height: 38px;
   padding: 9px 11px;
   border-radius: 7px;
@@ -374,8 +374,37 @@ body {
   background: #5865f2;
 }
 
+.brand-icon {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--brand-color);
+  color: white;
+}
+
+.brand-icon svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.brand-letter {
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .button span:first-child {
   min-width: 0;
+}
+
+.button .brand-icon + span {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .external {

@@ -11,6 +11,18 @@ const TABS = [
   { id: 'links', label: 'Links' },
   { id: 'commands', label: 'Chat' },
 ]
+const BRAND_META = {
+  bluesky: { label: 'Bluesky', color: '#1185fe', letter: 'B' },
+  custom: { label: 'Link', color: '#64748b', letter: 'L' },
+  discord: { label: 'Discord', color: '#5865f2', letter: 'D' },
+  github: { label: 'GitHub', color: '#24292f', letter: 'G' },
+  instagram: { label: 'Instagram', color: '#e1306c', letter: 'I' },
+  tiktok: { label: 'TikTok', color: '#111111', letter: 'T' },
+  twitch: { label: 'Twitch', color: '#9146ff', letter: 'T' },
+  website: { label: 'Website', color: '#0f766e', letter: 'W' },
+  x: { label: 'X', color: '#111111', letter: 'X' },
+  youtube: { label: 'YouTube', color: '#ff0033', letter: 'Y' },
+}
 
 function getFallbackParams() {
   const params = new URLSearchParams(window.location.search)
@@ -60,6 +72,45 @@ function isDiscordLink(link) {
   } catch {
     return false
   }
+}
+
+function BrandIcon({ network }) {
+  const brand = BRAND_META[network] || BRAND_META.custom
+
+  return (
+    <span className="brand-icon" style={{ '--brand-color': brand.color }} aria-hidden="true">
+      {network === 'discord' && (
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M18.7 5.4A15.1 15.1 0 0 0 15 4.2l-.2.4a13.8 13.8 0 0 1 3.3 1.6 11.6 11.6 0 0 0-9.1 0 13.8 13.8 0 0 1 3.3-1.6l-.2-.4a15.1 15.1 0 0 0-3.7 1.2C6.1 8.8 5.5 12.1 5.8 15.4a15 15 0 0 0 4.5 2.3l.6-1a9.6 9.6 0 0 1-1.4-.7l.3-.2a10.8 10.8 0 0 0 9.4 0l.3.2a9.6 9.6 0 0 1-1.4.7l.6 1a15 15 0 0 0 4.5-2.3c.4-3.8-.7-7-3.1-10Zm-7.8 8.1c-.7 0-1.3-.7-1.3-1.5s.6-1.5 1.3-1.5 1.3.7 1.3 1.5-.6 1.5-1.3 1.5Zm4.7 0c-.7 0-1.3-.7-1.3-1.5s.6-1.5 1.3-1.5 1.3.7 1.3 1.5-.6 1.5-1.3 1.5Z" />
+        </svg>
+      )}
+      {network === 'youtube' && (
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M21.6 7.2a3 3 0 0 0-2.1-2.1C17.6 4.6 12 4.6 12 4.6s-5.6 0-7.5.5a3 3 0 0 0-2.1 2.1A31 31 0 0 0 2 12a31 31 0 0 0 .4 4.8 3 3 0 0 0 2.1 2.1c1.9.5 7.5.5 7.5.5s5.6 0 7.5-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 22 12a31 31 0 0 0-.4-4.8ZM10 15.4V8.6l5.8 3.4L10 15.4Z" />
+        </svg>
+      )}
+      {network === 'instagram' && (
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M7.8 2.5h8.4a5.3 5.3 0 0 1 5.3 5.3v8.4a5.3 5.3 0 0 1-5.3 5.3H7.8a5.3 5.3 0 0 1-5.3-5.3V7.8a5.3 5.3 0 0 1 5.3-5.3Zm0 2A3.3 3.3 0 0 0 4.5 7.8v8.4a3.3 3.3 0 0 0 3.3 3.3h8.4a3.3 3.3 0 0 0 3.3-3.3V7.8a3.3 3.3 0 0 0-3.3-3.3H7.8Zm4.2 3.4a4.1 4.1 0 1 1 0 8.2 4.1 4.1 0 0 1 0-8.2Zm0 2a2.1 2.1 0 1 0 0 4.2 2.1 2.1 0 0 0 0-4.2Zm4.4-2.9a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2Z" />
+        </svg>
+      )}
+      {network === 'tiktok' && (
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M15.2 3c.4 3 2 4.8 4.8 5v3.2a8.2 8.2 0 0 1-4.7-1.5v5.9a5.8 5.8 0 1 1-5.8-5.8c.4 0 .8 0 1.2.1v3.4a2.4 2.4 0 1 0 1.3 2.1V3h3.2Z" />
+        </svg>
+      )}
+      {network === 'github' && (
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M12 2.6a9.6 9.6 0 0 0-3 18.7c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-4.8 0-1.1.4-2 1-2.6-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 4.8 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.7 1 1.5 1 2.6 0 3.7-2.4 4.5-4.6 4.8.4.3.7 1 .7 2v2.6c0 .3.2.6.7.5A9.6 9.6 0 0 0 12 2.6Z" />
+        </svg>
+      )}
+      {network === 'x' && <span className="brand-letter">X</span>}
+      {network === 'bluesky' && <span className="brand-letter">B</span>}
+      {!['discord', 'youtube', 'instagram', 'tiktok', 'github', 'x', 'bluesky'].includes(network) && (
+        <span className="brand-letter">{brand.letter}</span>
+      )}
+    </span>
+  )
 }
 
 function CategoryArt({ stream }) {
@@ -331,6 +382,7 @@ function App() {
                 rel="noreferrer"
                 aria-label="Discord extern öffnen"
               >
+                <BrandIcon network="discord" />
                 <span>Discord</span>
                 <span className="external" aria-hidden="true">
                   ↗
@@ -349,6 +401,7 @@ function App() {
                     rel="noreferrer"
                     aria-label={`${link.label} extern öffnen`}
                   >
+                    <BrandIcon network={link.network} />
                     <span>{link.label}</span>
                     <span className="external" aria-hidden="true">
                       ↗
