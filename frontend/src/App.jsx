@@ -3,6 +3,7 @@ import './App.css'
 
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
 const MAX_UPCOMING = 3
+const MAX_ANNOUNCEMENTS = 3
 const TWITCH_HOST_PATTERN = /(^|\.)twitch\.tv$/i
 const DISCORD_HOST_PATTERN = /(^|\.)discord(?:app)?\.com$|^discord\.gg$/i
 
@@ -85,6 +86,43 @@ function CategoryArt({ stream }) {
   )
 }
 
+function AnnouncementList({ announcements }) {
+  const visibleAnnouncements = announcements?.slice(0, MAX_ANNOUNCEMENTS) || []
+
+  if (visibleAnnouncements.length === 0) return null
+
+  return (
+    <section className="announcements" aria-label="Mitteilungen">
+      {visibleAnnouncements.map((announcement) => {
+        const html = announcement.body_html || ''
+        const color = announcement.severity_color || '#3b82f6'
+
+        return (
+          <article
+            key={announcement.id}
+            className="announcement"
+            style={{ '--announcement-color': color }}
+          >
+            <div className="announcement-meta">
+              <span className="announcement-badge">{announcement.severity_label || 'Info'}</span>
+              {announcement.is_pinned && <span className="announcement-pinned">Fixiert</span>}
+            </div>
+            {announcement.title && <strong>{announcement.title}</strong>}
+            {html ? (
+              <div
+                className="announcement-body"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            ) : (
+              <p className="announcement-body">{announcement.body}</p>
+            )}
+          </article>
+        )
+      })}
+    </section>
+  )
+}
+
 function App() {
   const [theme, setTheme] = useState('dark')
   const [data, setData] = useState(null)
@@ -145,6 +183,7 @@ function App() {
 
   const accent = data?.streamer?.accent_color || '#9146ff'
   const nextStream = data?.next_stream
+  const announcements = data?.announcements || []
   const visibleUpcoming = data?.upcoming_streams?.slice(1, 1 + MAX_UPCOMING) || []
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
   const discordLink = data?.links?.find(isDiscordLink)
@@ -207,6 +246,8 @@ function App() {
           </div>
         </div>
       </section>
+
+      <AnnouncementList announcements={announcements} />
 
       <section className="card">
         <div className="card-head">

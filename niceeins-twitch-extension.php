@@ -14,6 +14,8 @@ use Niceeins\StreamSync\Repository\Social;
 use Niceeins\StreamSync\Repository\SocialRepository;
 use Niceeins\StreamSync\Repository\Streamer;
 use Niceeins\StreamSync\Repository\StreamerRepository;
+use Niceeins\StreamSync\Repository\Announcement;
+use Niceeins\StreamSync\Repository\AnnouncementRepository;
 use Niceeins\StreamSync\Support\TwitchHelper;
 
 if (!defined('ABSPATH')) {
@@ -94,6 +96,15 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
     $cached = get_transient($cache_key);
 
     if (is_array($cached)) {
+        if (!array_key_exists('announcements', $cached)) {
+            $cached['announcements'] = [];
+        }
+        if (!isset($cached['meta']) || !is_array($cached['meta'])) {
+            $cached['meta'] = [];
+        }
+        if (!array_key_exists('announcements_available', $cached['meta'])) {
+            $cached['meta']['announcements_available'] = false;
+        }
         $cached['meta']['resolved_by'] = $resolved['resolved_by'];
         $cached['meta']['auth'] = niceeins_extension_auth_meta($auth);
         $cached['meta']['cache'] = ['hit' => true, 'ttl' => 60];
@@ -104,6 +115,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
     $schedules = $streamer->schedule_public
         ? (new ScheduleRepository())->findPublicUpcoming($streamer->user_id, $limit)
         : [];
+    $announcements = niceeins_extension_announcements_for_streamer($streamer);
 
     $data = [
         'streamer' => niceeins_extension_streamer_to_array($streamer),
@@ -112,6 +124,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
             static fn(Schedule $schedule): array => niceeins_extension_schedule_to_array($schedule, $streamer),
             $schedules
         ),
+        'announcements' => $announcements['items'],
         'links' => niceeins_extension_links_for_streamer($streamer),
         'live' => [
             'is_live' => $streamer->is_live,
@@ -124,6 +137,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
             'resolved_by' => $resolved['resolved_by'],
             'generated_at' => gmdate('c'),
             'schedule_public' => $streamer->schedule_public,
+            'announcements_available' => $announcements['available'],
             'auth' => niceeins_extension_auth_meta($auth),
             'cache' => ['hit' => false, 'ttl' => 60],
         ],
@@ -223,6 +237,115 @@ function niceeins_extension_schedule_to_array(Schedule $schedule, Streamer $stre
         ],
         'is_recurring' => $schedule->recurrence_rule === 'weekly',
     ];
+}
+
+/**
+ * @return array{items: list<array<string, mixed>>, available: bool}
+ */
+function niceeins_extension_announcements_for_streamer(Streamer $streamer): array
+{
+    if (
+        !class_exists(AnnouncementRepository::class)
+        || !class_exists(Announcement::class)
+        || !method_exists(AnnouncementRepository::class, 'findActive')
+    ) {
+        return [
+            'items' => [],
+            'available' => false,
+        ];
+    }
+
+    try {
+        $announcements = (new AnnouncementRepository())->findActive(
+            $streamer->user_id,
+            new DateTimeImmutable('now', new DateTimeZone('UTC'))
+        );
+    } catch (Throwable) {
+        return [
+            'items' => [],
+            'available' => false,
+        ];
+    }
+
+    $items = [];
+    foreach ($announcements as $announcement) {
+        if (!$announcement instanceof Announcement || !$announcement->show_in_panel) {
+            continue;
+        }
+
+        $items[] = niceeins_extension_announcement_to_array($announcement);
+    }
+
+    return [
+        'items' => $items,
+        'available' => true,
+    ];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function niceeins_extension_announcement_to_array(Announcement $announcement): array
+{
+    return [
+        'id' => $announcement->id,
+        'severity' => $announcement->severity,
+        'severity_label' => method_exists($announcement, 'severityLabel')
+            ? $announcement->severityLabel()
+            : niceeins_extension_announcement_severity_label($announcement->severity),
+        'severity_color' => '#' . ltrim(
+            method_exists($announcement, 'severityColor')
+                ? $announcement->severityColor()
+                : niceeins_extension_announcement_severity_color($announcement->severity),
+            '#'
+        ),
+        'title' => $announcement->title,
+        'body' => $announcement->body,
+        'body_html' => $announcement->body_html,
+        'is_pinned' => $announcement->is_pinned,
+        'starts_at' => niceeins_extension_datetime_to_utc_iso($announcement->starts_at),
+        'ends_at' => niceeins_extension_datetime_to_utc_iso($announcement->ends_at),
+        'updated_at' => niceeins_extension_datetime_to_utc_iso($announcement->updated_at),
+    ];
+}
+
+function niceeins_extension_announcement_severity_label(string $severity): string
+{
+    return match ($severity) {
+        'urgent' => 'Wichtig',
+        'notice' => 'Hinweis',
+        default => 'Info',
+    };
+}
+
+function niceeins_extension_announcement_severity_color(string $severity): string
+{
+    return match ($severity) {
+        'urgent' => 'ef4444',
+        'notice' => 'f59e0b',
+        default => '3b82f6',
+    };
+}
+
+function niceeins_extension_datetime_to_utc_iso(DateTimeInterface|string|null $value): ?string
+{
+    if ($value instanceof DateTimeInterface) {
+        return DateTimeImmutable::createFromInterface($value)
+            ->setTimezone(new DateTimeZone('UTC'))
+            ->format('Y-m-d\TH:i:s\Z');
+    }
+
+    if (!is_string($value) || trim($value) === '') {
+        return null;
+    }
+
+    try {
+        return (new DateTimeImmutable($value, new DateTimeZone('UTC')))
+            ->setTimezone(new DateTimeZone('UTC'))
+            ->format('Y-m-d\TH:i:s\Z');
+    } catch (Throwable) {
+        return null;
+    }
 }
 
 /**

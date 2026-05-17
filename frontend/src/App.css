@@ -143,6 +143,100 @@ body {
   white-space: nowrap;
 }
 
+.announcements {
+  display: grid;
+  gap: 7px;
+}
+
+.announcement {
+  --announcement-color: #3b82f6;
+  border-radius: 8px;
+  padding: 9px 10px 9px 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--announcement-color);
+  overflow: hidden;
+}
+
+.announcement-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 5px;
+}
+
+.announcement-badge,
+.announcement-pinned {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.announcement-badge {
+  padding: 3px 6px;
+  background: color-mix(in srgb, var(--announcement-color) 18%, transparent);
+  color: var(--announcement-color);
+}
+
+.announcement-pinned {
+  flex: 0 1 auto;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.announcement strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.announcement-body {
+  display: -webkit-box;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.announcement-body p,
+.announcement-body ul,
+.announcement-body ol {
+  margin: 0;
+}
+
+.announcement-body ul,
+.announcement-body ol {
+  padding-left: 17px;
+}
+
+.announcement-body a {
+  color: inherit;
+  font-weight: 800;
+}
+
+.announcement-body code {
+  border-radius: 4px;
+  padding: 1px 3px;
+  background: var(--surface-strong);
+  color: inherit;
+}
+
 .card strong {
   display: block;
   font-size: 18px;
@@ -307,9 +401,14 @@ body {
   }
 
   .card,
+  .announcement,
   .stream,
   .state {
     padding: 9px;
+  }
+
+  .announcement-body {
+    -webkit-line-clamp: 2;
   }
 
   .card strong {
