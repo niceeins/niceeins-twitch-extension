@@ -4,68 +4,168 @@
 
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .panel {
+  --accent: #9146ff;
   min-height: 100vh;
-  padding: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
 }
 
 .panel-dark {
-  background: #0f0f13;
-  color: #ffffff;
+  background: #111116;
+  color: #f7f7fb;
 }
 
 .panel-light {
-  background: #ffffff;
-  color: #111111;
+  background: #f7f7fb;
+  color: #16161d;
 }
 
-.card {
-  border-radius: 16px;
-  padding: 16px;
-  background: rgba(145, 70, 255, 0.15);
-  border: 1px solid rgba(145, 70, 255, 0.35);
+.profile {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
 }
 
-h1 {
-  margin: 0 0 6px;
-  font-size: 22px;
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.profile h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .subtitle {
-  margin: 0 0 16px;
-  opacity: 0.8;
-}
-
-.box {
-  margin: 10px 0;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.box span {
-  display: block;
+  margin: 3px 0 0;
   font-size: 12px;
-  opacity: 0.7;
+  opacity: 0.72;
+  overflow-wrap: anywhere;
 }
 
-.box strong {
+.live {
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #eb0400;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.card {
+  border-radius: 8px;
+  padding: 13px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
+.eyebrow,
+.status span,
+.stream span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  opacity: 0.66;
+}
+
+.card strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.card p,
+.status strong,
+.stream strong {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.card small,
+.status small,
+.stream small {
   display: block;
   margin-top: 4px;
-  font-size: 16px;
+  font-size: 12px;
+  opacity: 0.68;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+}
+
+.stream,
+.status,
+.state {
+  border-radius: 8px;
+  padding: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .button {
-  display: block;
-  margin-top: 14px;
-  padding: 12px;
-  border-radius: 12px;
-  background: #9146ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: var(--accent);
   color: white;
   text-decoration: none;
   text-align: center;
-  font-weight: bold;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.state {
+  margin: auto 0;
+  text-align: center;
+}
+
+.state strong,
+.state span {
+  display: block;
+}
+
+.state span {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.72;
+}
+
+.panel-light .stream,
+.panel-light .status,
+.panel-light .state {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(0, 0, 0, 0.08);
 }
