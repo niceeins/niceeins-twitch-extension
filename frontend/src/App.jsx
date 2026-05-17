@@ -193,8 +193,18 @@ function App() {
       {data.links?.length > 0 && (
         <nav className="links" aria-label="Community Links">
           {data.links.slice(0, 5).map((link) => (
-            <a key={`${link.network}-${link.url}`} className="button" href={link.url} target="_blank" rel="noreferrer">
-              {link.label}
+            <a
+              key={`${link.network}-${link.url}`}
+              className="button"
+              href={link.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`${link.label} extern öffnen`}
+            >
+              <span>{link.label}</span>
+              <span className="external" aria-hidden="true">
+                ↗
+              </span>
             </a>
           ))}
         </nav>
