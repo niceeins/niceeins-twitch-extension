@@ -9,7 +9,7 @@ const DISCORD_HOST_PATTERN = /(^|\.)discord(?:app)?\.com$|^discord\.gg$/i
 const TABS = [
   { id: 'plan', label: 'Plan' },
   { id: 'links', label: 'Links' },
-  { id: 'commands', label: 'Chat' },
+  { id: 'commands', label: 'Kommandos' },
 ]
 const BRAND_META = {
   bluesky: { label: 'Bluesky', color: '#1185fe', letter: 'B' },
@@ -171,6 +171,99 @@ function AnnouncementList({ announcements }) {
   )
 }
 
+function groupCommandsByCategory(commands) {
+  return commands.reduce((groups, command) => {
+    const category = command.category || 'other'
+    const existing = groups.find((group) => group.category === category)
+
+    if (existing) {
+      existing.commands.push(command)
+      return groups
+    }
+
+    groups.push({
+      category,
+      label: command.category_label || 'Sonstiges',
+      commands: [command],
+    })
+
+    return groups
+  }, [])
+}
+
+function CommandList({ commands }) {
+  const [activeCommandId, setActiveCommandId] = useState(null)
+  const [toast, setToast] = useState('')
+  const visibleCommands = commands?.filter((command) => command?.command) || []
+
+  if (visibleCommands.length === 0) return null
+
+  const commandGroups = groupCommandsByCategory(visibleCommands)
+
+  const copyCommand = async (command) => {
+    if (!navigator.clipboard?.writeText) return
+
+    try {
+      await navigator.clipboard.writeText(command.command)
+      setActiveCommandId((current) => (current === command.id ? null : command.id))
+      setToast('Kopiert')
+      window.setTimeout(() => setToast(''), 1400)
+    } catch {
+      setToast('')
+    }
+  }
+
+  return (
+    <section className="commands" aria-label="Chat-Kommandos">
+      {toast && (
+        <span className="toast" role="status" aria-live="polite">
+          {toast}
+        </span>
+      )}
+
+      {commandGroups.map((group) => (
+        <section key={group.category} className="command-group" aria-label={group.label}>
+          <h2>{group.label}</h2>
+          <div className="command-pills">
+            {group.commands.map((command) => {
+              const isActive = activeCommandId === command.id
+              const details = [command.description, command.example ? `Beispiel: ${command.example}` : '']
+                .filter(Boolean)
+                .join('\n')
+
+              return (
+                <article key={command.id} className="command-card">
+                  <button
+                    className="command-pill"
+                    type="button"
+                    title={details || command.command}
+                    aria-expanded={isActive}
+                    onClick={() => copyCommand(command)}
+                  >
+                    <span
+                      className="permission-dot"
+                      style={{ '--permission-color': command.permission_color || '#6b7280' }}
+                      aria-label={command.permission_label || command.permission || 'Alle'}
+                    />
+                    <span>{command.command}</span>
+                  </button>
+
+                  {isActive && details && (
+                    <div className="command-detail">
+                      {command.description && <p>{command.description}</p>}
+                      {command.example && <code>{command.example}</code>}
+                    </div>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      ))}
+    </section>
+  )
+}
+
 function App() {
   const [theme, setTheme] = useState('dark')
   const [data, setData] = useState(null)
@@ -235,14 +328,18 @@ function App() {
   const accent = data?.streamer?.accent_color || '#9146ff'
   const nextStream = data?.next_stream
   const announcements = data?.announcements || []
+  const commands = data?.commands || []
+  const hasCommands = commands.length > 0
   const visibleUpcoming = data?.upcoming_streams?.slice(1, 1 + MAX_UPCOMING) || []
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
   const discordLink = data?.links?.find(isDiscordLink)
   const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link) && !isDiscordLink(link)).slice(0, 5) || []
-  const activeTabIndex = TABS.findIndex((tab) => tab.id === activeTab)
+  const availableTabs = hasCommands ? TABS : TABS.filter((tab) => tab.id !== 'commands')
+  const currentTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : 'plan'
+  const activeTabIndex = availableTabs.findIndex((tab) => tab.id === currentTab)
 
   const changeTab = (tabId) => {
-    const nextIndex = TABS.findIndex((tab) => tab.id === tabId)
+    const nextIndex = availableTabs.findIndex((tab) => tab.id === tabId)
     if (nextIndex < 0 || nextIndex === activeTabIndex) return
 
     setSlideDirection(nextIndex > activeTabIndex ? 'next' : 'previous')
@@ -263,8 +360,8 @@ function App() {
     if (Math.abs(deltaX) < 45) return
 
     const nextIndex = deltaX < 0 ? activeTabIndex + 1 : activeTabIndex - 1
-    if (nextIndex >= 0 && nextIndex < TABS.length) {
-      changeTab(TABS[nextIndex].id)
+    if (nextIndex >= 0 && nextIndex < availableTabs.length) {
+      changeTab(availableTabs[nextIndex].id)
     }
   }
 
@@ -311,10 +408,10 @@ function App() {
       </section>
 
       <nav className="tabs" aria-label="Panel Bereiche">
-        {TABS.map((tab) => (
+        {availableTabs.map((tab) => (
           <button
             key={tab.id}
-            className={tab.id === activeTab ? 'tab tab-active' : 'tab'}
+            className={tab.id === currentTab ? 'tab tab-active' : 'tab'}
             type="button"
             onClick={() => changeTab(tab.id)}
           >
@@ -324,12 +421,12 @@ function App() {
       </nav>
 
       <section
-        key={activeTab}
+        key={currentTab}
         className={`tab-panel tab-panel-${slideDirection}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {activeTab === 'plan' && (
+        {currentTab === 'plan' && (
           <>
             <AnnouncementList announcements={announcements} />
 
@@ -369,7 +466,7 @@ function App() {
           </>
         )}
 
-        {activeTab === 'links' && (
+        {currentTab === 'links' && (
           <>
             {discordLink && (
               <a
@@ -417,12 +514,7 @@ function App() {
           </>
         )}
 
-        {activeTab === 'commands' && (
-          <section className="state state-compact">
-            <strong>Chat-Kommandos</strong>
-            <span>Dieser Bereich ist vorbereitet.</span>
-          </section>
-        )}
+        {currentTab === 'commands' && <CommandList commands={commands} />}
       </section>
     </main>
   )

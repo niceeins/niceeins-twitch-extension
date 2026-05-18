@@ -70,7 +70,7 @@ body {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 4px;
   padding: 3px;
   border-radius: 8px;
@@ -270,6 +270,127 @@ body {
   padding: 1px 3px;
   background: var(--surface-strong);
   color: inherit;
+}
+
+.commands {
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+
+.toast {
+  position: sticky;
+  top: 0;
+  justify-self: end;
+  z-index: 1;
+  border-radius: 7px;
+  padding: 6px 9px;
+  background: var(--accent);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+.command-group {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.command-group h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.command-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.command-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.command-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.command-pill:hover,
+.command-pill[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+
+.command-pill span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.permission-dot {
+  --permission-color: #6b7280;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--permission-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--permission-color) 18%, transparent);
+}
+
+.command-detail {
+  display: grid;
+  gap: 5px;
+  max-width: 100%;
+  margin-top: 6px;
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.command-detail p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.command-detail code {
+  display: block;
+  border-radius: 5px;
+  padding: 5px 6px;
+  background: var(--surface-strong);
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .card strong {
@@ -478,6 +599,7 @@ body {
 
   .card,
   .announcement,
+  .command-detail,
   .stream,
   .state {
     padding: 9px;

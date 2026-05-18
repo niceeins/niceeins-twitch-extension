@@ -16,6 +16,8 @@ use Niceeins\StreamSync\Repository\Streamer;
 use Niceeins\StreamSync\Repository\StreamerRepository;
 use Niceeins\StreamSync\Repository\Announcement;
 use Niceeins\StreamSync\Repository\AnnouncementRepository;
+use Niceeins\StreamSync\Repository\Command;
+use Niceeins\StreamSync\Repository\CommandRepository;
 use Niceeins\StreamSync\Support\TwitchHelper;
 
 if (!defined('ABSPATH')) {
@@ -108,6 +110,9 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
         $cached['meta']['resolved_by'] = $resolved['resolved_by'];
         $cached['meta']['auth'] = niceeins_extension_auth_meta($auth);
         $cached['meta']['cache'] = ['hit' => true, 'ttl' => 60];
+        if (!niceeins_extension_commands_repository_available()) {
+            unset($cached['commands']);
+        }
 
         return niceeins_extension_cors_response(new WP_REST_Response($cached, 200));
     }
@@ -116,6 +121,7 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
         ? (new ScheduleRepository())->findPublicUpcoming($streamer->user_id, $limit)
         : [];
     $announcements = niceeins_extension_announcements_for_streamer($streamer);
+    $commands = niceeins_extension_commands_for_streamer($streamer);
 
     $data = [
         'streamer' => niceeins_extension_streamer_to_array($streamer),
@@ -142,6 +148,10 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
             'cache' => ['hit' => false, 'ttl' => 60],
         ],
     ];
+
+    if ($commands['available']) {
+        $data['commands'] = $commands['items'];
+    }
 
     set_transient($cache_key, $data, 60);
 
@@ -324,6 +334,109 @@ function niceeins_extension_announcement_severity_color(string $severity): strin
         'urgent' => 'ef4444',
         'notice' => 'f59e0b',
         default => '3b82f6',
+    };
+}
+
+/**
+ * @return array{items: list<array<string, mixed>>, available: bool}
+ */
+function niceeins_extension_commands_for_streamer(Streamer $streamer): array
+{
+    if (!niceeins_extension_commands_repository_available()) {
+        return [
+            'items' => [],
+            'available' => false,
+        ];
+    }
+
+    try {
+        $commands = (new CommandRepository())->findByUser($streamer->user_id, true);
+    } catch (Throwable) {
+        return [
+            'items' => [],
+            'available' => false,
+        ];
+    }
+
+    $items = [];
+    foreach ($commands as $command) {
+        if (!$command instanceof Command) {
+            continue;
+        }
+
+        $items[] = niceeins_extension_command_to_array($command);
+    }
+
+    return [
+        'items' => $items,
+        'available' => true,
+    ];
+}
+
+function niceeins_extension_commands_repository_available(): bool
+{
+    return class_exists(CommandRepository::class)
+        && class_exists(Command::class)
+        && method_exists(CommandRepository::class, 'findByUser');
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function niceeins_extension_command_to_array(Command $command): array
+{
+    return [
+        'id' => $command->id,
+        'command' => $command->command,
+        'description' => $command->description,
+        'example' => $command->example,
+        'category' => $command->category,
+        'category_label' => method_exists($command, 'categoryLabel')
+            ? $command->categoryLabel()
+            : niceeins_extension_command_category_label($command->category),
+        'permission' => $command->permission,
+        'permission_label' => method_exists($command, 'permissionLabel')
+            ? $command->permissionLabel()
+            : niceeins_extension_command_permission_label($command->permission),
+        'permission_color' => '#' . ltrim(
+            method_exists($command, 'permissionColor')
+                ? $command->permissionColor()
+                : niceeins_extension_command_permission_color($command->permission),
+            '#'
+        ),
+        'is_visible' => $command->is_visible,
+    ];
+}
+
+function niceeins_extension_command_category_label(string $category): string
+{
+    return match ($category) {
+        'info' => 'Information',
+        'social' => 'Social Media',
+        'game' => 'Spiel',
+        'mod' => 'Moderation',
+        'fun' => 'Fun',
+        default => 'Sonstiges',
+    };
+}
+
+function niceeins_extension_command_permission_label(string $permission): string
+{
+    return match ($permission) {
+        'vip' => 'VIP',
+        'moderator' => 'Moderator',
+        'broadcaster' => 'Streamer',
+        default => 'Alle',
+    };
+}
+
+function niceeins_extension_command_permission_color(string $permission): string
+{
+    return match ($permission) {
+        'vip' => 'e005b9',
+        'moderator' => '00ad03',
+        'broadcaster' => 'e91916',
+        default => '6b7280',
     };
 }
 
