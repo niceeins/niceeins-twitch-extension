@@ -1,0 +1,41 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "00 Status prüfen",
+      "type": "shell",
+      "command": "echo USER=$(whoami) && pwd && git status && git branch --show-current && git remote -v",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Claude Code starten",
+      "type": "shell",
+      "command": "echo USER=$(whoami) && pwd && git status && git branch --show-current && claude",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex starten",
+      "type": "shell",
+      "command": "echo USER=$(whoami) && pwd && git status && git branch --show-current && codex",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Git Diff prüfen",
+      "type": "shell",
+      "command": "git status && git diff --stat && git diff --check",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
