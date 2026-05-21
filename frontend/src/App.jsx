@@ -11,7 +11,7 @@ const TABS = [
   { id: 'plan', label: 'Plan' },
   { id: 'links', label: 'Links' },
   { id: 'games', label: 'Games' },
-  { id: 'commands', label: 'Kommandos' },
+  { id: 'commands', label: 'Cmds' },
 ]
 const GAME_FILTERS = [
   {
