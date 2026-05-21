@@ -4,13 +4,38 @@ import './App.css'
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
 const MAX_UPCOMING = 3
 const MAX_ANNOUNCEMENTS = 3
+const MAX_GAME_RATING_STARS = 5
 const TWITCH_HOST_PATTERN = /(^|\.)twitch\.tv$/i
 const DISCORD_HOST_PATTERN = /(^|\.)discord(?:app)?\.com$|^discord\.gg$/i
 const TABS = [
   { id: 'plan', label: 'Plan' },
   { id: 'links', label: 'Links' },
+  { id: 'games', label: 'Games' },
   { id: 'commands', label: 'Kommandos' },
 ]
+const GAME_FILTERS = [
+  {
+    id: 'currently_playing',
+    label: 'Aktuell',
+    empty: 'Aktuell wird nichts gespielt',
+  },
+  {
+    id: 'recently_played',
+    label: 'Zuletzt',
+    empty: 'Noch keine Games erfasst',
+  },
+  {
+    id: 'top_rated',
+    label: 'Top',
+    empty: 'Noch keine bewerteten Spiele',
+  },
+]
+const DEFAULT_GAME_FILTER = {
+  currently: 'currently_playing',
+  recent: 'recently_played',
+  rated: 'top_rated',
+  all: 'currently_playing',
+}
 const BRAND_META = {
   bluesky: { label: 'Bluesky', color: '#1185fe', letter: 'B' },
   custom: { label: 'Link', color: '#64748b', letter: 'L' },
@@ -52,6 +77,31 @@ function formatDate(value) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+function formatRelativeTime(value) {
+  if (!value) return null
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffDays = Math.round((startOfToday - startOfDate) / 86400000)
+
+  if (diffDays <= 0) return 'heute'
+  if (diffDays === 1) return 'gestern'
+
+  return `vor ${diffDays} Tagen`
+}
+
+function ratingStars(rating) {
+  if (rating === null || rating === undefined) return ''
+
+  const filled = Math.max(1, Math.min(MAX_GAME_RATING_STARS, Math.round(Number(rating) / 2)))
+
+  return '★'.repeat(filled)
 }
 
 function isTwitchLink(link) {
@@ -264,6 +314,88 @@ function CommandList({ commands }) {
   )
 }
 
+function GameCard({ game }) {
+  const relativeTime = formatRelativeTime(game.last_streamed_at || game.completed_at)
+  const stars = ratingStars(game.rating)
+
+  const openGame = () => {
+    if (!game.profile_url) return
+
+    window.open(game.profile_url, '_blank', 'noopener,noreferrer')
+  }
+
+  return (
+    <button className="game-card" type="button" onClick={openGame}>
+      <span className="game-cover" aria-hidden="true">
+        <span className="game-cover-fallback">{game.title?.charAt(0)?.toUpperCase() || 'G'}</span>
+        {game.cover_url && (
+          <img
+            src={game.cover_url}
+            alt=""
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.hidden = true
+            }}
+          />
+        )}
+      </span>
+
+      <span className="game-content">
+        <span className="game-title">{game.title || 'Game'}</span>
+        <span className="game-meta">
+          <span className="game-status" style={{ '--game-status-color': game.status_color || '#6b7280' }}>
+            {game.status_label || game.status || 'Status'}
+          </span>
+          {game.rating !== null && game.rating !== undefined && (
+            <span className="game-rating">
+              {game.rating}/10 {stars}
+            </span>
+          )}
+        </span>
+        {relativeTime && <span className="game-time">{relativeTime}</span>}
+      </span>
+    </button>
+  )
+}
+
+function GamesTab({ games, widgetMode }) {
+  const initialFilter = DEFAULT_GAME_FILTER[widgetMode] || DEFAULT_GAME_FILTER.all
+  const [activeFilter, setActiveFilter] = useState(initialFilter)
+  const currentFilter = GAME_FILTERS.find((filter) => filter.id === activeFilter) || GAME_FILTERS[0]
+  const items = games?.[currentFilter.id]?.slice(0, currentFilter.id === 'top_rated' ? 3 : 5) || []
+
+  return (
+    <section className="games" aria-label="Games">
+      <div className="game-filters" role="tablist" aria-label="Game Filter">
+        {GAME_FILTERS.map((filter) => (
+          <button
+            key={filter.id}
+            className={filter.id === currentFilter.id ? 'game-filter game-filter-active' : 'game-filter'}
+            type="button"
+            role="tab"
+            aria-selected={filter.id === currentFilter.id}
+            onClick={() => setActiveFilter(filter.id)}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
+      {items.length > 0 ? (
+        <div className="game-list">
+          {items.map((game) => (
+            <GameCard key={`${currentFilter.id}-${game.id}`} game={game} />
+          ))}
+        </div>
+      ) : (
+        <section className="state state-compact">
+          <strong>{currentFilter.empty}</strong>
+        </section>
+      )}
+    </section>
+  )
+}
+
 function App() {
   const [theme, setTheme] = useState('dark')
   const [data, setData] = useState(null)
@@ -330,11 +462,17 @@ function App() {
   const announcements = data?.announcements || []
   const commands = data?.commands || []
   const hasCommands = commands.length > 0
+  const hasGames = Boolean(data?.games)
   const visibleUpcoming = data?.upcoming_streams?.slice(1, 1 + MAX_UPCOMING) || []
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
   const discordLink = data?.links?.find(isDiscordLink)
   const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link) && !isDiscordLink(link)).slice(0, 5) || []
-  const availableTabs = hasCommands ? TABS : TABS.filter((tab) => tab.id !== 'commands')
+  const availableTabs = TABS.filter((tab) => {
+    if (tab.id === 'commands') return hasCommands
+    if (tab.id === 'games') return hasGames
+
+    return true
+  })
   const currentTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : 'plan'
   const activeTabIndex = availableTabs.findIndex((tab) => tab.id === currentTab)
 
@@ -515,6 +653,13 @@ function App() {
         )}
 
         {currentTab === 'commands' && <CommandList commands={commands} />}
+        {currentTab === 'games' && (
+          <GamesTab
+            key={data.meta?.games_public_widget || 'all'}
+            games={data.games}
+            widgetMode={data.meta?.games_public_widget || 'all'}
+          />
+        )}
       </section>
     </main>
   )

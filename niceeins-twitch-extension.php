@@ -18,6 +18,8 @@ use Niceeins\StreamSync\Repository\Announcement;
 use Niceeins\StreamSync\Repository\AnnouncementRepository;
 use Niceeins\StreamSync\Repository\Command;
 use Niceeins\StreamSync\Repository\CommandRepository;
+use Niceeins\StreamSync\Repository\PlayedGame;
+use Niceeins\StreamSync\Repository\PlayedGameRepository;
 use Niceeins\StreamSync\Support\TwitchHelper;
 
 if (!defined('ABSPATH')) {
@@ -38,6 +40,7 @@ add_action('rest_api_init', function (): void {
             'channel' => ['sanitize_callback' => 'sanitize_text_field'],
             'user_id' => ['sanitize_callback' => 'absint'],
             'limit' => ['sanitize_callback' => 'absint'],
+            'widget' => ['sanitize_callback' => 'sanitize_key'],
         ],
     ]);
 });
@@ -94,7 +97,8 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
     }
 
     $limit = max(1, min((int) ($request->get_param('limit') ?: 5), 10));
-    $cache_key = 'niceeins_extension_panel_' . md5($streamer->user_id . ':' . $limit);
+    $widget = niceeins_extension_widget_param($request);
+    $cache_key = 'niceeins_extension_panel_' . md5($streamer->user_id . ':' . $limit . ':' . $widget);
     $cached = get_transient($cache_key);
 
     if (is_array($cached)) {
@@ -113,6 +117,10 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
         if (!niceeins_extension_commands_repository_available()) {
             unset($cached['commands']);
         }
+        if (!niceeins_extension_games_repository_available()) {
+            unset($cached['games']);
+            unset($cached['meta']['games_public_widget'], $cached['meta']['games_available']);
+        }
 
         return niceeins_extension_cors_response(new WP_REST_Response($cached, 200));
     }
@@ -122,6 +130,9 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
         : [];
     $announcements = niceeins_extension_announcements_for_streamer($streamer);
     $commands = niceeins_extension_commands_for_streamer($streamer);
+    $games = in_array($widget, ['all', 'games'], true)
+        ? niceeins_extension_games_for_streamer($streamer)
+        : ['items' => null, 'available' => false, 'widget_mode' => 'off'];
 
     $data = [
         'streamer' => niceeins_extension_streamer_to_array($streamer),
@@ -144,6 +155,8 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
             'generated_at' => gmdate('c'),
             'schedule_public' => $streamer->schedule_public,
             'announcements_available' => $announcements['available'],
+            'games_available' => $games['available'],
+            'games_public_widget' => $games['widget_mode'],
             'auth' => niceeins_extension_auth_meta($auth),
             'cache' => ['hit' => false, 'ttl' => 60],
         ],
@@ -151,6 +164,10 @@ function niceeins_extension_get_panel_data(WP_REST_Request $request): WP_REST_Re
 
     if ($commands['available']) {
         $data['commands'] = $commands['items'];
+    }
+
+    if (is_array($games['items'])) {
+        $data['games'] = $games['items'];
     }
 
     set_transient($cache_key, $data, 60);
@@ -378,6 +395,166 @@ function niceeins_extension_commands_repository_available(): bool
     return class_exists(CommandRepository::class)
         && class_exists(Command::class)
         && method_exists(CommandRepository::class, 'findByUser');
+}
+
+function niceeins_extension_games_repository_available(): bool
+{
+    return class_exists(PlayedGameRepository::class)
+        && class_exists(PlayedGame::class)
+        && method_exists(PlayedGameRepository::class, 'findPublicForUser');
+}
+
+function niceeins_extension_widget_param(WP_REST_Request $request): string
+{
+    $widget = (string) ($request->get_param('widget') ?: 'all');
+
+    return in_array($widget, ['all', 'games'], true) ? $widget : 'all';
+}
+
+/**
+ * @return array{items: array<string, list<array<string, mixed>>>|null, available: bool, widget_mode: string}
+ */
+function niceeins_extension_games_for_streamer(Streamer $streamer): array
+{
+    $widget_mode = niceeins_extension_games_public_widget($streamer);
+    if ($widget_mode === 'off') {
+        return [
+            'items' => null,
+            'available' => niceeins_extension_games_repository_available(),
+            'widget_mode' => 'off',
+        ];
+    }
+
+    if (!niceeins_extension_games_repository_available()) {
+        return [
+            'items' => null,
+            'available' => false,
+            'widget_mode' => $widget_mode,
+        ];
+    }
+
+    try {
+        $repo = new PlayedGameRepository();
+
+        return [
+            'items' => [
+                'currently_playing' => niceeins_extension_played_games_to_array(
+                    $repo->findPublicForUser($streamer->user_id, 'currently_playing', 5),
+                    $streamer
+                ),
+                'recently_played' => niceeins_extension_played_games_to_array(
+                    $repo->findPublicForUser($streamer->user_id, 'recently_played', 5),
+                    $streamer
+                ),
+                'top_rated' => niceeins_extension_played_games_to_array(
+                    $repo->findPublicForUser($streamer->user_id, 'top_rated', 3),
+                    $streamer
+                ),
+            ],
+            'available' => true,
+            'widget_mode' => $widget_mode,
+        ];
+    } catch (Throwable) {
+        return [
+            'items' => null,
+            'available' => false,
+            'widget_mode' => $widget_mode,
+        ];
+    }
+}
+
+function niceeins_extension_games_public_widget(Streamer $streamer): string
+{
+    global $wpdb;
+
+    $table = $wpdb->base_prefix . 'niceeins_streamers';
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+    $value = $wpdb->get_var(
+        $wpdb->prepare(
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            "SELECT games_public_widget FROM {$table} WHERE user_id = %d LIMIT 1",
+            $streamer->user_id
+        )
+    );
+
+    $value = is_string($value) ? $value : 'off';
+
+    return in_array($value, ['off', 'currently', 'recent', 'rated', 'all'], true) ? $value : 'off';
+}
+
+/**
+ * @param array<int, mixed> $games
+ * @return list<array<string, mixed>>
+ */
+function niceeins_extension_played_games_to_array(array $games, Streamer $streamer): array
+{
+    $items = [];
+
+    foreach ($games as $game) {
+        if (!$game instanceof PlayedGame) {
+            continue;
+        }
+
+        $items[] = niceeins_extension_played_game_to_array($game, $streamer);
+    }
+
+    return $items;
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function niceeins_extension_played_game_to_array(PlayedGame $game, Streamer $streamer): array
+{
+    return [
+        'id' => $game->id,
+        'title' => $game->title,
+        'slug' => $game->slug,
+        'cover_url' => $game->cover_url,
+        'status' => $game->status,
+        'status_label' => method_exists($game, 'statusLabel')
+            ? $game->statusLabel()
+            : niceeins_extension_game_status_label($game->status),
+        'status_color' => method_exists($game, 'statusColor')
+            ? $game->statusColor()
+            : niceeins_extension_game_status_color($game->status),
+        'rating' => $game->rating,
+        'last_streamed_at' => niceeins_extension_datetime_to_utc_iso($game->last_streamed_at),
+        'completed_at' => niceeins_extension_datetime_to_utc_iso($game->completed_at),
+        'profile_url' => niceeins_extension_game_profile_url($streamer, $game),
+    ];
+}
+
+function niceeins_extension_game_profile_url(Streamer $streamer, PlayedGame $game): string
+{
+    $login = strtolower((string) $streamer->twitch_login);
+    $base = 'https://' . rawurlencode($login) . '.nice1.id';
+
+    return $base . '/?game=' . rawurlencode($game->slug);
+}
+
+function niceeins_extension_game_status_label(string $status): string
+{
+    return match ($status) {
+        'planned' => 'Geplant',
+        'playing' => 'Spiele aktuell',
+        'paused' => 'Pausiert',
+        'completed' => 'Durchgespielt',
+        'dropped' => 'Abgebrochen',
+        default => $status,
+    };
+}
+
+function niceeins_extension_game_status_color(string $status): string
+{
+    return match ($status) {
+        'playing' => '#10b981',
+        'paused' => '#f59e0b',
+        'completed' => '#3b82f6',
+        'dropped' => '#ef4444',
+        default => '#6b7280',
+    };
 }
 
 /**
