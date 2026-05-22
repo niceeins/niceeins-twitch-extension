@@ -43,7 +43,7 @@ body {
 
 .profile {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   min-width: 0;
@@ -142,6 +142,12 @@ body {
   }
 }
 
+.home {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+
 .card {
   border-radius: 8px;
   padding: 12px;
@@ -149,11 +155,118 @@ body {
   border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
-.card-head {
+.card-head,
+.home-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
+}
+
+.home-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.status-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.status-badge-live {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.home-card strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.home-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.home-card p span {
+  color: inherit;
+  font-weight: 800;
+}
+
+.home-game-card {
+  padding: 8px;
+}
+
+.home-game-card .game-card {
+  min-height: 60px;
+  padding: 6px;
+}
+
+.home-card-commands {
+  position: relative;
+}
+
+.quick-commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.quick-command {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 7px 10px;
+}
+
+.quick-command:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-strong));
+}
+
+.mini-toast {
+  flex: 0 0 auto;
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .eyebrow,
@@ -566,7 +679,8 @@ body {
 }
 
 .card p,
-.stream strong {
+.stream strong,
+.featured-stream p {
   margin: 6px 0 0;
   font-size: 14px;
   line-height: 1.25;
@@ -727,7 +841,7 @@ body {
   }
 
   .profile {
-    grid-template-columns: 26px minmax(0, 1fr);
+    grid-template-columns: 26px minmax(0, 1fr) auto;
   }
 
   .avatar {
@@ -764,6 +878,7 @@ body {
   }
 
   .card,
+  .home-card,
   .announcement,
   .command-detail,
   .game-card,

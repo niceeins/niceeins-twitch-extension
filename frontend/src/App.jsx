@@ -4,10 +4,12 @@ import './App.css'
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
 const MAX_UPCOMING = 3
 const MAX_ANNOUNCEMENTS = 3
+const MAX_QUICK_COMMANDS = 3
 const MAX_GAME_RATING_STARS = 5
 const TWITCH_HOST_PATTERN = /(^|\.)twitch\.tv$/i
 const DISCORD_HOST_PATTERN = /(^|\.)discord(?:app)?\.com$|^discord\.gg$/i
 const TABS = [
+  { id: 'home', label: 'Start' },
   { id: 'plan', label: 'Plan' },
   { id: 'links', label: 'Links' },
   { id: 'games', label: 'Games' },
@@ -221,6 +223,24 @@ function AnnouncementList({ announcements }) {
   )
 }
 
+function isJustChatting(gameName) {
+  return typeof gameName === 'string' && gameName.trim().toLowerCase() === 'just chatting'
+}
+
+function isJustChattingGame(game) {
+  return isJustChatting(game?.title) || game?.slug === 'just-chatting'
+}
+
+function getPreviousPlayedGame(games) {
+  const candidates = [
+    ...(games?.currently_playing || []),
+    ...(games?.recently_played || []),
+    ...(games?.top_rated || []),
+  ]
+
+  return candidates.find((game) => game && !isJustChattingGame(game)) || null
+}
+
 function groupCommandsByCategory(commands) {
   return commands.reduce((groups, command) => {
     const category = command.category || 'other'
@@ -246,7 +266,14 @@ function CommandList({ commands }) {
   const [toast, setToast] = useState('')
   const visibleCommands = commands?.filter((command) => command?.command) || []
 
-  if (visibleCommands.length === 0) return null
+  if (visibleCommands.length === 0) {
+    return (
+      <section className="state state-compact">
+        <strong>Keine Commands</strong>
+        <span>Für diesen Channel sind keine öffentlichen Chat-Commands hinterlegt.</span>
+      </section>
+    )
+  }
 
   const commandGroups = groupCommandsByCategory(visibleCommands)
 
@@ -314,6 +341,58 @@ function CommandList({ commands }) {
   )
 }
 
+function QuickCommands({ commands }) {
+  const [toast, setToast] = useState('')
+  const quickCommands = commands?.filter((command) => command?.command).slice(0, MAX_QUICK_COMMANDS) || []
+
+  if (quickCommands.length === 0) {
+    return (
+      <section className="home-card">
+        <span className="eyebrow">Quick Commands</span>
+        <p>Aktuell sind keine öffentlichen Commands verfügbar.</p>
+      </section>
+    )
+  }
+
+  const copyCommand = async (command) => {
+    if (!navigator.clipboard?.writeText) return
+
+    try {
+      await navigator.clipboard.writeText(command.command)
+      setToast('Kopiert')
+      window.setTimeout(() => setToast(''), 1400)
+    } catch {
+      setToast('')
+    }
+  }
+
+  return (
+    <section className="home-card home-card-commands">
+      <div className="home-card-head">
+        <span className="eyebrow">Quick Commands</span>
+        {toast && (
+          <span className="mini-toast" role="status" aria-live="polite">
+            {toast}
+          </span>
+        )}
+      </div>
+      <div className="quick-commands">
+        {quickCommands.map((command) => (
+          <button
+            key={command.id || command.command}
+            className="quick-command"
+            type="button"
+            title={command.description || command.command}
+            onClick={() => copyCommand(command)}
+          >
+            {command.command}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function GameCard({ game }) {
   const relativeTime = formatRelativeTime(game.last_streamed_at || game.completed_at)
   const stars = ratingStars(game.rating)
@@ -355,6 +434,88 @@ function GameCard({ game }) {
         {relativeTime && <span className="game-time">{relativeTime}</span>}
       </span>
     </button>
+  )
+}
+
+function getHomeGame({ live, games }) {
+  const previousPlayedGame = getPreviousPlayedGame(games)
+  const recentGame = games?.recently_played?.[0] || games?.top_rated?.[0]
+
+  if (live?.is_live && live.game) {
+    const isChatting = isJustChatting(live.game)
+
+    return {
+      label: 'Jetzt im Stream',
+      title: live.game,
+      meta: live.title || 'Live auf Twitch',
+      game: isChatting ? previousPlayedGame : null,
+      cardLabel: isChatting ? 'Davor gespielt' : null,
+      previousGame: isChatting ? previousPlayedGame : null,
+    }
+  }
+
+  const currentGame = games?.currently_playing?.[0]
+  if (currentGame) {
+    const isChatting = isJustChattingGame(currentGame)
+
+    return {
+      label: 'Aktuelles Game',
+      title: currentGame.title || 'Game',
+      meta: currentGame.status_label || 'Wird gespielt',
+      game: isChatting ? previousPlayedGame || currentGame : currentGame,
+      cardLabel: isChatting && previousPlayedGame ? 'Davor gespielt' : 'Aktuelles Game',
+      previousGame: isChatting ? previousPlayedGame : null,
+    }
+  }
+
+  if (recentGame) {
+    return {
+      label: 'Zuletzt gespielt',
+      title: recentGame.title || 'Game',
+      meta: formatRelativeTime(recentGame.last_streamed_at || recentGame.completed_at) || recentGame.status_label,
+      game: recentGame,
+      cardLabel: 'Zuletzt gespielt',
+    }
+  }
+
+  return null
+}
+
+function HomeTab({ announcements, commands, games, live, nextStream }) {
+  const homeGame = getHomeGame({ live, games })
+
+  return (
+    <section className="home" aria-label="Start">
+      <section className="home-card">
+        <div className="home-card-head">
+          <span className="eyebrow">Nächster Stream</span>
+          {nextStream?.category?.name && <span className="pill">{nextStream.category.name}</span>}
+        </div>
+        {nextStream ? (
+          <div className="featured-stream">
+            <CategoryArt stream={nextStream} />
+            <div>
+              <strong>{formatDate(nextStream.starts_at_local || nextStream.starts_at)}</strong>
+              <p>{nextStream.title || 'Stream'}</p>
+              {nextStream.category?.name && <small>{nextStream.category.name}</small>}
+            </div>
+          </div>
+        ) : (
+          <p>Aktuell ist kein öffentlicher Stream geplant.</p>
+        )}
+      </section>
+
+      {homeGame?.game && (
+        <section className="home-card home-game-card">
+          <span className="eyebrow">{homeGame.cardLabel || homeGame.label}</span>
+          <GameCard game={homeGame.game} />
+        </section>
+      )}
+
+      <AnnouncementList announcements={announcements} />
+
+      <QuickCommands commands={commands} />
+    </section>
   )
 }
 
@@ -401,7 +562,7 @@ function App() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('plan')
+  const [activeTab, setActiveTab] = useState('home')
   const [slideDirection, setSlideDirection] = useState('next')
   const touchStartX = useRef(null)
 
@@ -461,19 +622,12 @@ function App() {
   const nextStream = data?.next_stream
   const announcements = data?.announcements || []
   const commands = data?.commands || []
-  const hasCommands = commands.length > 0
-  const hasGames = Boolean(data?.games)
   const visibleUpcoming = data?.upcoming_streams?.slice(1, 1 + MAX_UPCOMING) || []
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
   const discordLink = data?.links?.find(isDiscordLink)
   const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link) && !isDiscordLink(link)).slice(0, 5) || []
-  const availableTabs = TABS.filter((tab) => {
-    if (tab.id === 'commands') return hasCommands
-    if (tab.id === 'games') return hasGames
-
-    return true
-  })
-  const currentTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : 'plan'
+  const availableTabs = TABS
+  const currentTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : 'home'
   const activeTabIndex = availableTabs.findIndex((tab) => tab.id === currentTab)
 
   const changeTab = (tabId) => {
@@ -543,6 +697,9 @@ function App() {
           <img className="avatar" src={data.streamer.profile_image_url} alt="" />
         )}
         <h1>{displayName}</h1>
+        <span className={data.live?.is_live ? 'status-badge status-badge-live' : 'status-badge'}>
+          {data.live?.is_live ? 'Live' : 'Offline'}
+        </span>
       </section>
 
       <nav className="tabs" aria-label="Panel Bereiche">
@@ -564,10 +721,18 @@ function App() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+        {currentTab === 'home' && (
+          <HomeTab
+            announcements={announcements}
+            commands={commands}
+            games={data.games}
+            live={data.live}
+            nextStream={nextStream}
+          />
+        )}
+
         {currentTab === 'plan' && (
           <>
-            <AnnouncementList announcements={announcements} />
-
             <section className="card">
               <div className="card-head">
                 <span className="eyebrow">Nächster Stream</span>
