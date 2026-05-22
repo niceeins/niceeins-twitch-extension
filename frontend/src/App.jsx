@@ -6,6 +6,8 @@ const MAX_UPCOMING = 3
 const MAX_ANNOUNCEMENTS = 3
 const MAX_QUICK_COMMANDS = 3
 const MAX_GAME_RATING_STARS = 5
+const MAX_SUGGESTIONS_HOME = 3
+const MAX_SUGGESTIONS_GAMES = 5
 const TWITCH_HOST_PATTERN = /(^|\.)twitch\.tv$/i
 const DISCORD_HOST_PATTERN = /(^|\.)discord(?:app)?\.com$|^discord\.gg$/i
 const TABS = [
@@ -343,6 +345,7 @@ function CommandList({ commands }) {
 
 function QuickCommands({ commands }) {
   const [toast, setToast] = useState('')
+  const [copiedCommandId, setCopiedCommandId] = useState(null)
   const quickCommands = commands?.filter((command) => command?.command).slice(0, MAX_QUICK_COMMANDS) || []
 
   if (quickCommands.length === 0) {
@@ -359,8 +362,12 @@ function QuickCommands({ commands }) {
 
     try {
       await navigator.clipboard.writeText(command.command)
+      setCopiedCommandId(command.id || command.command)
       setToast('Kopiert')
-      window.setTimeout(() => setToast(''), 1400)
+      window.setTimeout(() => {
+        setToast('')
+        setCopiedCommandId(null)
+      }, 1400)
     } catch {
       setToast('')
     }
@@ -377,17 +384,22 @@ function QuickCommands({ commands }) {
         )}
       </div>
       <div className="quick-commands">
-        {quickCommands.map((command) => (
-          <button
-            key={command.id || command.command}
-            className="quick-command"
-            type="button"
-            title={command.description || command.command}
-            onClick={() => copyCommand(command)}
-          >
-            {command.command}
-          </button>
-        ))}
+        {quickCommands.map((command) => {
+          const cmdId = command.id || command.command
+          const isCopied = copiedCommandId === cmdId
+
+          return (
+            <button
+              key={cmdId}
+              className={isCopied ? 'quick-command quick-command-copied' : 'quick-command'}
+              type="button"
+              title={command.description || command.command}
+              onClick={() => copyCommand(command)}
+            >
+              {command.command}
+            </button>
+          )
+        })}
       </div>
     </section>
   )
@@ -481,7 +493,62 @@ function getHomeGame({ live, games }) {
   return null
 }
 
-function HomeTab({ announcements, commands, games, live, nextStream }) {
+function SuggestionsCard({ suggestions, suggestionsUrl, limit, variant = 'home' }) {
+  const items = (suggestions || []).slice(0, limit)
+
+  if (items.length === 0 && variant === 'home') return null
+
+  const openSuggestions = () => {
+    if (!suggestionsUrl) return
+    window.open(suggestionsUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  return (
+    <section className={variant === 'games' ? 'home-card suggestions-card suggestions-card-wide' : 'home-card suggestions-card'}>
+      <div className="home-card-head">
+        <span className="eyebrow">Community-Wünsche</span>
+      </div>
+      <p className="suggestions-sub">Diese Spiele stehen bei der Community hoch im Kurs.</p>
+
+      {items.length > 0 ? (
+        <ul className="suggestions-list">
+          {items.map((suggestion, index) => (
+            <li key={`${suggestion.game_name}-${index}`} className="suggestion-item">
+              <span className="suggestion-rank">{index + 1}</span>
+              <span className="suggestion-body">
+                <span className="suggestion-title">{suggestion.game_name}</span>
+                {suggestion.status_label && (
+                  <span
+                    className="suggestion-status"
+                    style={{ '--suggestion-status-color': suggestion.status_color || '#6b7280' }}
+                  >
+                    {suggestion.status_label}
+                  </span>
+                )}
+              </span>
+              {typeof suggestion.votes === 'number' && (
+                <span className="suggestion-votes" aria-label={`${suggestion.votes} Stimmen`}>
+                  ▲ {suggestion.votes}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="suggestions-empty">Noch keine Vorschläge — sei die/der Erste!</p>
+      )}
+
+      {suggestionsUrl && (
+        <button className="suggestions-cta" type="button" onClick={openSuggestions}>
+          <span>Spiel vorschlagen</span>
+          <span className="external" aria-hidden="true">↗</span>
+        </button>
+      )}
+    </section>
+  )
+}
+
+function HomeTab({ announcements, commands, games, live, nextStream, suggestions, suggestionsUrl }) {
   const homeGame = getHomeGame({ live, games })
 
   return (
@@ -505,21 +572,32 @@ function HomeTab({ announcements, commands, games, live, nextStream }) {
         )}
       </section>
 
-      {homeGame?.game && (
+      {homeGame?.game ? (
         <section className="home-card home-game-card">
           <span className="eyebrow">{homeGame.cardLabel || homeGame.label}</span>
           <GameCard game={homeGame.game} />
         </section>
+      ) : (
+        <section className="home-card">
+          <span className="eyebrow">Aktuelles Game</span>
+          <p>Noch keine Games erfasst.</p>
+        </section>
       )}
 
       <AnnouncementList announcements={announcements} />
+
+      <SuggestionsCard
+        suggestions={suggestions}
+        suggestionsUrl={suggestionsUrl}
+        limit={MAX_SUGGESTIONS_HOME}
+      />
 
       <QuickCommands commands={commands} />
     </section>
   )
 }
 
-function GamesTab({ games, widgetMode }) {
+function GamesTab({ games, widgetMode, suggestions, suggestionsUrl }) {
   const initialFilter = DEFAULT_GAME_FILTER[widgetMode] || DEFAULT_GAME_FILTER.all
   const [activeFilter, setActiveFilter] = useState(initialFilter)
   const currentFilter = GAME_FILTERS.find((filter) => filter.id === activeFilter) || GAME_FILTERS[0]
@@ -552,6 +630,15 @@ function GamesTab({ games, widgetMode }) {
         <section className="state state-compact">
           <strong>{currentFilter.empty}</strong>
         </section>
+      )}
+
+      {suggestions && suggestions.length > 0 && (
+        <SuggestionsCard
+          suggestions={suggestions}
+          suggestionsUrl={suggestionsUrl}
+          limit={MAX_SUGGESTIONS_GAMES}
+          variant="games"
+        />
       )}
     </section>
   )
@@ -626,6 +713,8 @@ function App() {
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
   const discordLink = data?.links?.find(isDiscordLink)
   const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link) && !isDiscordLink(link)).slice(0, 5) || []
+  const suggestions = data?.game_suggestions || []
+  const suggestionsUrl = data?.streamer?.suggestions_url || null
   const availableTabs = TABS
   const currentTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : 'home'
   const activeTabIndex = availableTabs.findIndex((tab) => tab.id === currentTab)
@@ -728,6 +817,8 @@ function App() {
             games={data.games}
             live={data.live}
             nextStream={nextStream}
+            suggestions={suggestions}
+            suggestionsUrl={suggestionsUrl}
           />
         )}
 
@@ -823,6 +914,8 @@ function App() {
             key={data.meta?.games_public_widget || 'all'}
             games={data.games}
             widgetMode={data.meta?.games_public_widget || 'all'}
+            suggestions={suggestions}
+            suggestionsUrl={suggestionsUrl}
           />
         )}
       </section>

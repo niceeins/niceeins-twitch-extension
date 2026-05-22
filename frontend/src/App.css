@@ -35,10 +35,15 @@ body {
 .panel-light {
   --surface: rgba(255, 255, 255, 0.82);
   --surface-strong: rgba(255, 255, 255, 0.96);
-  --border: rgba(0, 0, 0, 0.09);
+  --border: rgba(0, 0, 0, 0.1);
   --muted: rgba(22, 22, 29, 0.68);
   background: #f7f7fb;
   color: #16161d;
+}
+
+.panel-light .pill {
+  background: rgba(0, 0, 0, 0.07);
+  color: rgba(22, 22, 29, 0.78);
 }
 
 .profile {
@@ -144,7 +149,7 @@ body {
 
 .home {
   display: grid;
-  gap: 9px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -258,6 +263,13 @@ body {
   background: color-mix(in srgb, var(--accent) 14%, var(--surface-strong));
 }
 
+.quick-command-copied,
+.quick-command-copied:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
 .mini-toast {
   flex: 0 0 auto;
   border-radius: 6px;
@@ -296,7 +308,7 @@ body {
 
 .announcements {
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 
 .announcement {
@@ -483,11 +495,13 @@ body {
   display: grid;
   gap: 5px;
   max-width: 100%;
+  min-width: 0;
   margin-top: 6px;
   border-radius: 8px;
   padding: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .command-detail p {
@@ -500,12 +514,14 @@ body {
 
 .command-detail code {
   display: block;
+  max-width: 100%;
   border-radius: 5px;
   padding: 5px 6px;
   background: var(--surface-strong);
   color: inherit;
   font-size: 12px;
   line-height: 1.25;
+  overflow: hidden;
   overflow-wrap: anywhere;
 }
 
@@ -923,4 +939,114 @@ body {
     min-height: 34px;
     padding: 7px 9px;
   }
+}
+
+.suggestions-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestions-sub {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.suggestions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.suggestion-item {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+
+.suggestion-rank {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  text-align: center;
+}
+
+.suggestion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.suggestion-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-status {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--suggestion-status-color, var(--muted));
+}
+
+.suggestion-votes {
+  font-size: 11px;
+  font-weight: 800;
+  color: inherit;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  white-space: nowrap;
+}
+
+.suggestions-empty {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.suggestions-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: flex-start;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 12px;
+  cursor: pointer;
+  min-height: 28px;
+  max-width: 100%;
+}
+
+.suggestions-cta:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.suggestions-cta .external {
+  font-size: 12px;
+  line-height: 1;
 }

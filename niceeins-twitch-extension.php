@@ -20,6 +20,8 @@ use Niceeins\StreamSync\Repository\Command;
 use Niceeins\StreamSync\Repository\CommandRepository;
 use Niceeins\StreamSync\Repository\PlayedGame;
 use Niceeins\StreamSync\Repository\PlayedGameRepository;
+use Niceeins\StreamSync\Repository\GameSuggestion;
+use Niceeins\StreamSync\Repository\GameSuggestionRepository;
 use Niceeins\StreamSync\Support\TwitchHelper;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -141,11 +143,17 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         if ( ! array_key_exists( 'announcements', $cached ) ) {
             $cached['announcements'] = [];
         }
+        if ( ! array_key_exists( 'game_suggestions', $cached ) ) {
+            $cached['game_suggestions'] = [];
+        }
         if ( ! isset( $cached['meta'] ) || ! is_array( $cached['meta'] ) ) {
             $cached['meta'] = [];
         }
         if ( ! array_key_exists( 'announcements_available', $cached['meta'] ) ) {
             $cached['meta']['announcements_available'] = false;
+        }
+        if ( ! array_key_exists( 'game_suggestions_available', $cached['meta'] ) ) {
+            $cached['meta']['game_suggestions_available'] = false;
         }
         $cached['meta']['resolved_by'] = $resolved['resolved_by'];
         $cached['meta']['auth']        = niceeins_extension_auth_meta( $auth );
@@ -169,6 +177,7 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         : [];
     $announcements = niceeins_extension_announcements_for_streamer( $streamer );
     $commands      = niceeins_extension_commands_for_streamer( $streamer );
+    $suggestions   = niceeins_extension_game_suggestions_for_streamer( $streamer );
     $games         = in_array( $widget, [ 'all', 'games' ], true )
         ? niceeins_extension_games_for_streamer( $streamer )
         : [
@@ -185,6 +194,7 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
             $schedules
         ),
         'announcements'    => $announcements['items'],
+        'game_suggestions' => $suggestions['items'],
         'links'            => niceeins_extension_links_for_streamer( $streamer ),
         'live'             => [
             'is_live'    => $streamer->is_live,
@@ -198,6 +208,7 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
             'generated_at'            => gmdate( 'c' ),
             'schedule_public'         => $streamer->schedule_public,
             'announcements_available' => $announcements['available'],
+            'game_suggestions_available' => $suggestions['available'],
             'games_available'         => $games['available'],
             'games_public_widget'     => $games['widget_mode'],
             'auth'                    => niceeins_extension_auth_meta( $auth ),
@@ -281,6 +292,7 @@ function niceeins_extension_streamer_to_array( Streamer $streamer ): array
         'twitch_url'        => $streamer->twitch_login !== null
             ? 'https://twitch.tv/' . rawurlencode( $streamer->twitch_login )
             : null,
+        'suggestions_url'   => niceeins_extension_suggestions_profile_url( $streamer ),
     ];
 }
 
@@ -398,6 +410,78 @@ function niceeins_extension_announcement_severity_color( string $severity ): str
         'notice' => 'f59e0b',
         default => '3b82f6',
     };
+}
+
+function niceeins_extension_game_suggestions_repository_available(): bool
+{
+    return class_exists( GameSuggestionRepository::class )
+        && class_exists( GameSuggestion::class )
+        && method_exists( GameSuggestionRepository::class, 'findPublicForUser' );
+}
+
+/**
+ * @return array{items: list<array<string, mixed>>, available: bool}
+ */
+function niceeins_extension_game_suggestions_for_streamer( Streamer $streamer ): array
+{
+    if ( ! niceeins_extension_game_suggestions_repository_available() ) {
+        return [
+            'items'     => [],
+            'available' => false,
+        ];
+    }
+
+    try {
+        $suggestions = ( new GameSuggestionRepository() )->findPublicForUser( $streamer->user_id, 5 );
+    } catch ( Throwable ) {
+        return [
+            'items'     => [],
+            'available' => false,
+        ];
+    }
+
+    $items = [];
+    foreach ( $suggestions as $suggestion ) {
+        if ( ! $suggestion instanceof GameSuggestion ) {
+            continue;
+        }
+
+        $items[] = niceeins_extension_game_suggestion_to_array( $suggestion );
+    }
+
+    return [
+        'items'     => $items,
+        'available' => true,
+    ];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function niceeins_extension_game_suggestion_to_array( GameSuggestion $suggestion ): array
+{
+    return [
+        'game_name'    => $suggestion->game_name,
+        'votes'        => $suggestion->votes,
+        'status'       => $suggestion->status,
+        'status_label' => method_exists( $suggestion, 'statusLabel' )
+            ? $suggestion->statusLabel()
+            : $suggestion->status,
+        'status_color' => method_exists( $suggestion, 'statusColor' )
+            ? $suggestion->statusColor()
+            : '#6b7280',
+    ];
+}
+
+function niceeins_extension_suggestions_profile_url( Streamer $streamer ): ?string
+{
+    if ( $streamer->twitch_login === null || $streamer->twitch_login === '' ) {
+        return null;
+    }
+
+    $login = strtolower( (string) $streamer->twitch_login );
+
+    return 'https://' . rawurlencode( $login ) . '.nice1.id/#suggestions';
 }
 
 /**
