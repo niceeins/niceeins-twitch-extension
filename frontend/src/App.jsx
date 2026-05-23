@@ -22,16 +22,19 @@ const GAME_FILTERS = [
     id: 'currently_playing',
     label: 'Aktuell',
     empty: 'Aktuell wird nichts gespielt',
+    emptyDetail: 'Sobald der Streamer ein Spiel startet, erscheint es hier.',
   },
   {
     id: 'recently_played',
     label: 'Zuletzt',
     empty: 'Noch keine Games erfasst',
+    emptyDetail: 'Hier siehst du kürzlich gespielte Titel, sobald welche erfasst sind.',
   },
   {
     id: 'top_rated',
     label: 'Top',
     empty: 'Noch keine bewerteten Spiele',
+    emptyDetail: 'Bewertete Spiele erscheinen hier mit ihrer Sterne-Wertung.',
   },
 ]
 const DEFAULT_GAME_FILTER = {
@@ -265,14 +268,16 @@ function groupCommandsByCategory(commands) {
 
 function CommandList({ commands }) {
   const [activeCommandId, setActiveCommandId] = useState(null)
+  const [copiedCommandId, setCopiedCommandId] = useState(null)
   const [toast, setToast] = useState('')
   const visibleCommands = commands?.filter((command) => command?.command) || []
 
   if (visibleCommands.length === 0) {
     return (
       <section className="state state-compact">
+        <span className="state-icon" aria-hidden="true">&#9000;</span>
         <strong>Keine Commands</strong>
-        <span>Für diesen Channel sind keine öffentlichen Chat-Commands hinterlegt.</span>
+        <span>F&uuml;r diesen Channel sind keine &ouml;ffentlichen Chat-Commands hinterlegt. Schau sp&auml;ter wieder vorbei.</span>
       </section>
     )
   }
@@ -285,8 +290,10 @@ function CommandList({ commands }) {
     try {
       await navigator.clipboard.writeText(command.command)
       setActiveCommandId((current) => (current === command.id ? null : command.id))
+      setCopiedCommandId(command.id)
       setToast('Kopiert')
       window.setTimeout(() => setToast(''), 1400)
+      window.setTimeout(() => setCopiedCommandId(null), 1600)
     } catch {
       setToast('')
     }
@@ -306,6 +313,7 @@ function CommandList({ commands }) {
           <div className="command-pills">
             {group.commands.map((command) => {
               const isActive = activeCommandId === command.id
+              const isCopied = copiedCommandId === command.id
               const details = [command.description, command.example ? `Beispiel: ${command.example}` : '']
                 .filter(Boolean)
                 .join('\n')
@@ -313,7 +321,7 @@ function CommandList({ commands }) {
               return (
                 <article key={command.id} className="command-card">
                   <button
-                    className="command-pill"
+                    className={`command-pill${isCopied ? ' command-pill-copied' : ''}`}
                     type="button"
                     title={details || command.command}
                     aria-expanded={isActive}
@@ -324,7 +332,7 @@ function CommandList({ commands }) {
                       style={{ '--permission-color': command.permission_color || '#6b7280' }}
                       aria-label={command.permission_label || command.permission || 'Alle'}
                     />
-                    <span>{command.command}</span>
+                    <span>{isCopied ? 'Kopiert!' : command.command}</span>
                   </button>
 
                   {isActive && details && (
@@ -628,7 +636,9 @@ function GamesTab({ games, widgetMode, suggestions, suggestionsUrl }) {
         </div>
       ) : (
         <section className="state state-compact">
+          <span className="state-icon" aria-hidden="true">&#127918;</span>
           <strong>{currentFilter.empty}</strong>
+          <span>{currentFilter.emptyDetail}</span>
         </section>
       )}
 
@@ -750,6 +760,7 @@ function App() {
     return (
       <main className={`panel panel-${theme}`}>
         <section className="state">
+          <div className="spinner" aria-hidden="true" />
           <strong>Panel wird geladen</strong>
           <span>NiceEins synchronisiert die Streamdaten.</span>
         </section>
@@ -761,8 +772,12 @@ function App() {
     return (
       <main className={`panel panel-${theme}`}>
         <section className="state">
-          <strong>Panel nicht verfügbar</strong>
+          <span className="state-icon" aria-hidden="true">&#9888;</span>
+          <strong>Panel nicht verf&uuml;gbar</strong>
           <span>{error}</span>
+          <button className="state-retry" type="button" onClick={() => window.location.reload()}>
+            Neu laden
+          </button>
         </section>
       </main>
     )
@@ -772,8 +787,9 @@ function App() {
     return (
       <main className={`panel panel-${theme}`}>
         <section className="state">
+          <span className="state-icon" aria-hidden="true">&#128269;</span>
           <strong>Kein Channel gefunden</strong>
-          <span>Öffne das Panel über Twitch oder nutze ?channel=login für die Entwicklung.</span>
+          <span>&Ouml;ffne das Panel &uuml;ber Twitch oder nutze ?channel=login f&uuml;r die Entwicklung.</span>
         </section>
       </main>
     )
