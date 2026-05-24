@@ -780,17 +780,22 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 7px;
-  min-height: 38px;
-  padding: 9px 11px;
-  border-radius: 7px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 14px;
+  border-radius: 10px;
   background: var(--accent);
   color: white;
   text-decoration: none;
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   overflow-wrap: anywhere;
+  transition: filter 0.15s ease;
+}
+
+.button:hover {
+  filter: brightness(1.12);
 }
 
 .button-discord {
@@ -801,22 +806,22 @@ body {
   flex: 0 0 auto;
   display: inline-grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   background: var(--brand-color);
   color: white;
 }
 
 .brand-icon svg {
   display: block;
-  width: 15px;
-  height: 15px;
+  width: 19px;
+  height: 19px;
   fill: currentColor;
 }
 
 .brand-letter {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 900;
   line-height: 1;
 }
@@ -832,15 +837,91 @@ body {
 
 .external {
   flex: 0 0 auto;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
-  opacity: 0.86;
+  opacity: 0.75;
 }
 
 .links {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.button-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.button-label {
+  font-weight: 800;
+}
+
+.button-desc {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.78;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sponsor Card */
+
+.sponsor-card {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.sponsor-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sponsor-logo {
+  flex: 0 0 auto;
+  width: auto;
+  height: 36px;
+  max-width: 100%;
+  border-radius: 7px;
+  object-fit: contain;
+}
+
+.sponsor-name {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sponsor-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.sponsor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sponsor-cta {
+  background: var(--accent);
+}
+
+.affiliate-notice {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.3;
 }
 
 .state {
@@ -1058,8 +1139,29 @@ body {
   }
 
   .button {
-    min-height: 32px;
-    padding: 6px 8px;
+    min-height: 42px;
+    padding: 9px 10px;
+  }
+
+  .button-desc {
+    font-size: 10px;
+  }
+
+  .sponsor-card {
+    padding: 9px;
+    gap: 6px;
+  }
+
+  .sponsor-logo {
+    height: 28px;
+  }
+
+  .sponsor-name {
+    font-size: 13px;
+  }
+
+  .sponsor-desc {
+    font-size: 11px;
   }
 
   .quick-command {
@@ -1204,9 +1306,30 @@ body {
   }
 
   .button {
-    min-height: 28px;
-    padding: 5px 7px;
+    min-height: 36px;
+    padding: 7px 9px;
     font-size: 12px;
+  }
+
+  .button-desc {
+    display: none;
+  }
+
+  .sponsor-card {
+    padding: 7px;
+    gap: 4px;
+  }
+
+  .sponsor-logo {
+    height: 24px;
+  }
+
+  .sponsor-name {
+    font-size: 12px;
+  }
+
+  .sponsor-desc {
+    font-size: 10px;
   }
 
   .quick-commands {
@@ -1234,7 +1357,7 @@ body {
   }
 
   .links {
-    gap: 5px;
+    gap: 7px;
   }
 
   .suggestions-list {

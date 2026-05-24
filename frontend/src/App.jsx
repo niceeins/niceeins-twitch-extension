@@ -723,6 +723,7 @@ function App() {
   const displayName = data?.streamer?.display_name || data?.streamer?.twitch_login
   const discordLink = data?.links?.find(isDiscordLink)
   const visibleLinks = data?.links?.filter((link) => !isTwitchLink(link) && !isDiscordLink(link)).slice(0, 5) || []
+  const sponsor = data?.sponsor || null
   const suggestions = data?.game_suggestions || []
   const suggestionsUrl = data?.streamer?.suggestions_url || null
   const availableTabs = TABS
@@ -878,6 +879,36 @@ function App() {
 
         {currentTab === 'links' && (
           <>
+            {sponsor && (
+              <section className="sponsor-card">
+                <div className="sponsor-header">
+                  {sponsor.logo_url && (
+                    <img className="sponsor-logo" src={sponsor.logo_url} alt="" loading="lazy" />
+                  )}
+                  <strong className="sponsor-name">{sponsor.name}</strong>
+                </div>
+                {sponsor.description && (
+                  <p className="sponsor-desc">{sponsor.description}</p>
+                )}
+                <div className="sponsor-actions">
+                  {sponsor.link && (
+                    <a
+                      className="button sponsor-cta"
+                      href={sponsor.link}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Zum Sponsor
+                      <span className="external" aria-hidden="true">↗</span>
+                    </a>
+                  )}
+                  {sponsor.affiliate_active && (
+                    <span className="affiliate-notice">{sponsor.affiliate_text}</span>
+                  )}
+                </div>
+              </section>
+            )}
+
             {discordLink && (
               <a
                 className="button button-discord"
@@ -903,10 +934,15 @@ function App() {
                     href={link.url}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label={`${link.label} extern öffnen`}
+                    aria-label={`${link.label}${link.description ? ` — ${link.description}` : ''} extern öffnen`}
                   >
                     <BrandIcon network={link.network} />
-                    <span>{link.label}</span>
+                    <span className="button-text">
+                      <span className="button-label">{link.label}</span>
+                      {link.description && (
+                        <span className="button-desc">{link.description}</span>
+                      )}
+                    </span>
                     <span className="external" aria-hidden="true">
                       ↗
                     </span>
@@ -915,7 +951,7 @@ function App() {
               </nav>
             )}
 
-            {!discordLink && visibleLinks.length === 0 && (
+            {!sponsor && !discordLink && visibleLinks.length === 0 && (
               <section className="state state-compact">
                 <strong>Keine Links</strong>
                 <span>Für diesen Channel sind keine öffentlichen Links hinterlegt.</span>

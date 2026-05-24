@@ -196,6 +196,7 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         'announcements'    => $announcements['items'],
         'game_suggestions' => $suggestions['items'],
         'links'            => niceeins_extension_links_for_streamer( $streamer ),
+        'sponsor'          => niceeins_extension_sponsor_for_streamer( $streamer ),
         'live'             => [
             'is_live'    => $streamer->is_live,
             'title'      => $streamer->live_title,
@@ -782,22 +783,24 @@ function niceeins_extension_links_for_streamer( Streamer $streamer ): array
             }
 
             $links[] = [
-                'id'         => $social->id,
-                'network'    => $social->network,
-                'label'      => $social->label ?: niceeins_extension_label_for_network( $social->network ),
-                'url'        => $social->url,
-                'sort_order' => $social->sort_order,
+                'id'          => $social->id,
+                'network'     => $social->network,
+                'label'       => $social->label ?: niceeins_extension_label_for_network( $social->network ),
+                'url'         => $social->url,
+                'description' => $social->description,
+                'sort_order'  => $social->sort_order,
             ];
         }
     }
 
     if ( $streamer->discord_invite !== null && ! niceeins_extension_has_link( $links, $streamer->discord_invite ) ) {
         $links[] = [
-            'id'         => null,
-            'network'    => 'discord',
-            'label'      => 'Discord',
-            'url'        => $streamer->discord_invite,
-            'sort_order' => 900,
+            'id'          => null,
+            'network'     => 'discord',
+            'label'       => 'Discord',
+            'url'         => $streamer->discord_invite,
+            'description' => null,
+            'sort_order'  => 900,
         ];
     }
 
@@ -805,11 +808,12 @@ function niceeins_extension_links_for_streamer( Streamer $streamer ): array
         $twitch_url = 'https://twitch.tv/' . rawurlencode( $streamer->twitch_login );
         if ( ! niceeins_extension_has_link( $links, $twitch_url ) ) {
             $links[] = [
-                'id'         => null,
-                'network'    => 'twitch',
-                'label'      => 'Twitch',
-                'url'        => $twitch_url,
-                'sort_order' => 1000,
+                'id'          => null,
+                'network'     => 'twitch',
+                'label'       => 'Twitch',
+                'url'         => $twitch_url,
+                'description' => null,
+                'sort_order'  => 1000,
             ];
         }
     }
@@ -834,6 +838,29 @@ function niceeins_extension_has_link( array $links, string $url ): bool
     }
 
     return false;
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function niceeins_extension_sponsor_for_streamer( Streamer $streamer ): ?array
+{
+    if ( ! $streamer->sponsor_active ) {
+        return null;
+    }
+
+    if ( $streamer->sponsor_name === null && $streamer->sponsor_description === null ) {
+        return null;
+    }
+
+    return [
+        'name'              => $streamer->sponsor_name,
+        'description'       => $streamer->sponsor_description,
+        'logo_url'          => $streamer->sponsor_logo_url,
+        'link'              => $streamer->sponsor_link,
+        'affiliate_active'  => $streamer->sponsor_affiliate_active,
+        'affiliate_text'    => $streamer->sponsor_affiliate_text ?: 'Affiliate-Link / Werbung',
+    ];
 }
 
 function niceeins_extension_label_for_network( string $network ): string
