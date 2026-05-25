@@ -2,12 +2,48 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
+const PROFILE_API_BASE = 'https://niceeins.de/wp-json/niceeins/v1/profile/public'
+const ENABLE_PROFILE_BADGES = false
 const MAX_UPCOMING = 3
 const MAX_ANNOUNCEMENTS = 3
 const MAX_QUICK_COMMANDS = 3
 const MAX_GAME_RATING_STARS = 5
 const MAX_SUGGESTIONS_HOME = 3
 const MAX_SUGGESTIONS_GAMES = 5
+
+/**
+ * Kopiert Text in die Zwischenablage.
+ * Nutzt die moderne Clipboard API mit Fallback auf execCommand('copy')
+ * für iframes ohne allow="clipboard-write" (z.B. Twitch Panel Extension).
+ */
+async function copyToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // Fallback versuchen
+    }
+  }
+
+  try {
+    const scrollY = window.scrollY
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.setAttribute('readonly', '')
+    ta.style.position = 'fixed'
+    ta.style.left = '-9999px'
+    ta.style.top = '-9999px'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    window.scrollTo(0, scrollY)
+    return true
+  } catch {
+    return false
+  }
+}
 const TWITCH_HOST_PATTERN = /(^|\.)twitch\.tv$/i
 const DISCORD_HOST_PATTERN = /(^|\.)discord(?:app)?\.com$|^discord\.gg$/i
 const TABS = [
@@ -267,9 +303,7 @@ function groupCommandsByCategory(commands) {
 }
 
 function CommandList({ commands }) {
-  const [activeCommandId, setActiveCommandId] = useState(null)
   const [copiedCommandId, setCopiedCommandId] = useState(null)
-  const [toast, setToast] = useState('')
   const visibleCommands = commands?.filter((command) => command?.command) || []
 
   if (visibleCommands.length === 0) {
@@ -285,46 +319,28 @@ function CommandList({ commands }) {
   const commandGroups = groupCommandsByCategory(visibleCommands)
 
   const copyCommand = async (command) => {
-    if (!navigator.clipboard?.writeText) return
+    const ok = await copyToClipboard(command.command)
+    if (!ok) return
 
-    try {
-      await navigator.clipboard.writeText(command.command)
-      setActiveCommandId((current) => (current === command.id ? null : command.id))
-      setCopiedCommandId(command.id)
-      setToast('Kopiert')
-      window.setTimeout(() => setToast(''), 1400)
-      window.setTimeout(() => setCopiedCommandId(null), 1600)
-    } catch {
-      setToast('')
-    }
+    setCopiedCommandId(command.id)
+    window.setTimeout(() => setCopiedCommandId(null), 2000)
   }
 
   return (
     <section className="commands" aria-label="Chat-Kommandos">
-      {toast && (
-        <span className="toast" role="status" aria-live="polite">
-          {toast}
-        </span>
-      )}
-
       {commandGroups.map((group) => (
         <section key={group.category} className="command-group" aria-label={group.label}>
           <h2>{group.label}</h2>
           <div className="command-pills">
             {group.commands.map((command) => {
-              const isActive = activeCommandId === command.id
               const isCopied = copiedCommandId === command.id
-              const details = [command.description, command.example ? `Beispiel: ${command.example}` : '']
-                .filter(Boolean)
-                .join('\n')
 
               return (
                 <article key={command.id} className="command-card">
                   <button
                     className={`command-pill${isCopied ? ' command-pill-copied' : ''}`}
                     type="button"
-                    title={details || command.command}
-                    aria-expanded={isActive}
+                    title={command.command + ' in Zwischenablage kopieren'}
                     onClick={() => copyCommand(command)}
                   >
                     <span
@@ -332,14 +348,11 @@ function CommandList({ commands }) {
                       style={{ '--permission-color': command.permission_color || '#6b7280' }}
                       aria-label={command.permission_label || command.permission || 'Alle'}
                     />
-                    <span>{isCopied ? 'Kopiert!' : command.command}</span>
+                    <span className="command-name" aria-hidden={isCopied}>{command.command}</span>
+                    <span className={`copy-flash${isCopied ? ' copy-flash-visible' : ''}`} aria-hidden={!isCopied}>Kopiert!</span>
                   </button>
-
-                  {isActive && details && (
-                    <div className="command-detail">
-                      {command.description && <p>{command.description}</p>}
-                      {command.example && <code>{command.example}</code>}
-                    </div>
+                  {command.description && (
+                    <p className="command-desc">{command.description}</p>
                   )}
                 </article>
               )
@@ -366,19 +379,15 @@ function QuickCommands({ commands }) {
   }
 
   const copyCommand = async (command) => {
-    if (!navigator.clipboard?.writeText) return
+    const ok = await copyToClipboard(command.command)
+    if (!ok) return
 
-    try {
-      await navigator.clipboard.writeText(command.command)
-      setCopiedCommandId(command.id || command.command)
-      setToast('Kopiert')
-      window.setTimeout(() => {
-        setToast('')
-        setCopiedCommandId(null)
-      }, 1400)
-    } catch {
+    setCopiedCommandId(command.id || command.command)
+    setToast('Kopiert')
+    window.setTimeout(() => {
       setToast('')
-    }
+      setCopiedCommandId(null)
+    }, 1400)
   }
 
   return (
@@ -654,6 +663,44 @@ function GamesTab({ games, widgetMode, suggestions, suggestionsUrl }) {
   )
 }
 
+const BADGE_LABELS = {
+  // Stream-Stil
+  'variety': 'Variety', 'cozy': 'Cozy', 'chill': 'Chill',
+  'hype': 'Hype', 'high-energy': 'High Energy', 'laid-back': 'Laid Back',
+  'competitive': 'Competitive', 'speedrun': 'Speedrun', 'hardcore': 'Hardcore',
+  'casual': 'Casual', 'late-night': 'Late Night', 'marathon': 'Marathon',
+  'educational': 'Educational', 'creative': 'Creative', 'narrative': 'Narrative',
+  'technical': 'Technical', 'experimental': 'Experimental', 'nostalgic': 'Nostalgic',
+  // Games / Genres
+  'indie': 'Indie', 'retro': 'Retro', 'horror': 'Horror',
+  'story-games': 'Story Games', 'multiplayer': 'Multiplayer', 'open-world': 'Open World',
+  'rpg': 'RPG', 'mmorpg': 'MMORPG', 'soulslike': 'Soulslike', 'roguelike': 'Roguelike',
+  'metroidvania': 'Metroidvania', 'strategy': 'Strategy', 'simulation': 'Simulation',
+  'management': 'Management', 'farming': 'Farming', 'survival': 'Survival',
+  'sandbox': 'Sandbox', 'tower-defense': 'Tower Defense', 'fighting': 'Fighting',
+  'shooter': 'Shooter', 'platformer': 'Platformer', 'adventure': 'Adventure',
+  'point-and-click': 'Point & Click', 'visual-novel': 'Visual Novel',
+  'card-games': 'Card Games', 'rhythm': 'Rhythm', 'puzzle': 'Puzzle', 'sports': 'Sports',
+  // Community
+  'deutschsprachig': 'Deutschsprachig', 'english-friendly': 'English Friendly',
+  'family-friendly': 'Family Friendly', 'lgbtq-friendly': 'LGBTQ+ Friendly',
+  'new-streamer': 'New Streamer', 'community-games': 'Community Games',
+  'interactive': 'Interactive', 'viewer-games': 'Viewer Games',
+  'charity': 'Charity', 'welcoming': 'Welcoming',
+  // Challenges
+  'challenge-runs': 'Challenge Runs', 'permadeath': 'Permadeath',
+  'no-damage': 'No Damage', 'blind-playthrough': 'Blind Playthrough',
+  '100-percent': '100%', 'low-level': 'Low Level', 'nuzlocke': 'Nuzlocke',
+  'randomizer': 'Randomizer',
+  // Content-Typ
+  'lets-play': "Let's Play", 'reaction': 'Reaction', 'watch-party': 'Watch Party',
+  'tutorial': 'Tutorial', 'talk-show': 'Talk Show', 'podcast': 'Podcast',
+  'debate': 'Debate', 'q-and-a': 'Q&A', 'tierlist': 'Tierlist', 'news': 'News',
+  'art-stream': 'Art Stream', 'music': 'Music', 'coding': 'Coding',
+  'unboxing': 'Unboxing', 'entertaining': 'Entertaining',
+  'just-chatting': 'Just Chatting', 'irl': 'IRL',
+}
+
 function App() {
   const [theme, setTheme] = useState('dark')
   const [data, setData] = useState(null)
@@ -661,6 +708,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('home')
   const [slideDirection, setSlideDirection] = useState('next')
+  const [profileBadges, setProfileBadges] = useState(null)
   const touchStartX = useRef(null)
 
   useEffect(() => {
@@ -714,6 +762,30 @@ function App() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!ENABLE_PROFILE_BADGES) return
+
+    const twitchLogin = data?.streamer?.twitch_login
+    if (!twitchLogin) return
+
+    let cancelled = false
+
+    fetch(`${PROFILE_API_BASE}/${encodeURIComponent(twitchLogin)}`)
+      .then((res) => res.json())
+      .then((profile) => {
+        if (!cancelled && profile?.profile_badges?.length > 0) {
+          setProfileBadges(profile)
+        }
+      })
+      .catch(() => {
+        // Badges sind optional – Fehler stillschweigend ignorieren
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [data?.streamer?.twitch_login])
 
   const accent = data?.streamer?.accent_color || '#9146ff'
   const nextStream = data?.next_stream
@@ -807,6 +879,21 @@ function App() {
           {data.live?.is_live ? 'Live' : 'Offline'}
         </span>
       </section>
+
+      {ENABLE_PROFILE_BADGES && profileBadges && profileBadges.profile_badges.length > 0 && (
+        <div
+          className="ne-badges"
+          style={{ '--accent': profileBadges.accent_color || accent }}
+        >
+          {profileBadges.profile_badges.map((key) => {
+            const label = BADGE_LABELS[key]
+            if (!label) return null
+            return (
+              <span key={key} className="ne-badge-pill">{label}</span>
+            )
+          })}
+        </div>
+      )}
 
       <nav className="tabs" aria-label="Panel Bereiche">
         {availableTabs.map((tab) => (
