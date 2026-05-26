@@ -3,7 +3,7 @@ import './App.css'
 
 const API_URL = 'https://niceeins.de/wp-json/niceeins-extension/v1/panel'
 const PROFILE_API_BASE = 'https://niceeins.de/wp-json/niceeins/v1/profile/public'
-const ENABLE_PROFILE_BADGES = false
+// Badges werden aus data.meta.badges_enabled gesteuert (DB-Setting)
 const MAX_UPCOMING = 3
 const MAX_ANNOUNCEMENTS = 3
 const MAX_QUICK_COMMANDS = 3
@@ -56,21 +56,24 @@ const TABS = [
 const GAME_FILTERS = [
   {
     id: 'currently_playing',
-    label: 'Aktuell',
-    empty: 'Aktuell wird nichts gespielt',
-    emptyDetail: 'Sobald der Streamer ein Spiel startet, erscheint es hier.',
+    label: 'Im letzten Stream gespielt',
+    empty: 'Keine Games aus dem letzten Stream',
+    emptyDetail: 'Sobald der Streamer ein Spiel spielt, erscheint es hier.',
+    hint: 'Games aus dem letzten Stream.',
   },
   {
     id: 'recently_played',
-    label: 'Zuletzt',
-    empty: 'Noch keine Games erfasst',
-    emptyDetail: 'Hier siehst du kürzlich gespielte Titel, sobald welche erfasst sind.',
+    label: 'Vorherige Streams',
+    empty: 'Keine Games aus früheren Streams',
+    emptyDetail: 'Hier siehst du Games, die in früheren Streams gespielt wurden.',
+    hint: 'Games, die in früheren Streams gespielt wurden.',
   },
   {
     id: 'top_rated',
     label: 'Top',
     empty: 'Noch keine bewerteten Spiele',
     emptyDetail: 'Bewertete Spiele erscheinen hier mit ihrer Sterne-Wertung.',
+    hint: 'Am besten bewertete Games.',
   },
 ]
 const DEFAULT_GAME_FILTER = {
@@ -499,11 +502,11 @@ function getHomeGame({ live, games }) {
 
   if (recentGame) {
     return {
-      label: 'Zuletzt gespielt',
+      label: 'Im letzten Stream gespielt',
       title: recentGame.title || 'Game',
       meta: formatRelativeTime(recentGame.last_streamed_at || recentGame.completed_at) || recentGame.status_label,
       game: recentGame,
-      cardLabel: 'Zuletzt gespielt',
+      cardLabel: 'Im letzten Stream gespielt',
     }
   }
 
@@ -637,6 +640,10 @@ function GamesTab({ games, widgetMode, suggestions, suggestionsUrl }) {
         ))}
       </div>
 
+      {currentFilter.hint && (
+        <p className="game-filter-hint">{currentFilter.hint}</p>
+      )}
+
       {items.length > 0 ? (
         <div className="game-list">
           {items.map((game) => (
@@ -764,7 +771,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!ENABLE_PROFILE_BADGES) return
+    if (!data?.meta?.badges_enabled) return
 
     const twitchLogin = data?.streamer?.twitch_login
     if (!twitchLogin) return
@@ -798,7 +805,10 @@ function App() {
   const sponsor = data?.sponsor || null
   const suggestions = data?.game_suggestions || []
   const suggestionsUrl = data?.streamer?.suggestions_url || null
-  const availableTabs = TABS
+  const panelTabIds = data?.meta?.panel_tabs
+  const availableTabs = Array.isArray(panelTabIds) && panelTabIds.length > 0
+    ? TABS.filter((tab) => panelTabIds.includes(tab.id))
+    : TABS
   const currentTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : 'home'
   const activeTabIndex = availableTabs.findIndex((tab) => tab.id === currentTab)
 
@@ -880,7 +890,7 @@ function App() {
         </span>
       </section>
 
-      {ENABLE_PROFILE_BADGES && profileBadges && profileBadges.profile_badges.length > 0 && (
+      {data?.meta?.badges_enabled && profileBadges && profileBadges.profile_badges.length > 0 && (
         <div
           className="ne-badges"
           style={{ '--accent': profileBadges.accent_color || accent }}

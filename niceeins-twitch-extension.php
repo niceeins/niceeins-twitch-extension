@@ -155,9 +155,11 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         if ( ! array_key_exists( 'game_suggestions_available', $cached['meta'] ) ) {
             $cached['meta']['game_suggestions_available'] = false;
         }
-        $cached['meta']['resolved_by'] = $resolved['resolved_by'];
-        $cached['meta']['auth']        = niceeins_extension_auth_meta( $auth );
-        $cached['meta']['cache']       = [
+        $cached['meta']['resolved_by']  = $resolved['resolved_by'];
+        $cached['meta']['auth']         = niceeins_extension_auth_meta( $auth );
+        $cached['meta']['panel_tabs']   = niceeins_extension_panel_tabs( $streamer );
+        $cached['meta']['badges_enabled'] = (bool) $streamer->panel_badges_enabled;
+        $cached['meta']['cache']        = [
 			'hit' => true,
 			'ttl' => 60,
         ];
@@ -212,6 +214,8 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
             'game_suggestions_available' => $suggestions['available'],
             'games_available'         => $games['available'],
             'games_public_widget'     => $games['widget_mode'],
+            'panel_tabs'              => niceeins_extension_panel_tabs( $streamer ),
+            'badges_enabled'          => (bool) $streamer->panel_badges_enabled,
             'auth'                    => niceeins_extension_auth_meta( $auth ),
             'cache'                   => [
 				'hit' => false,
@@ -567,16 +571,20 @@ function niceeins_extension_games_for_streamer( Streamer $streamer ): array
     try {
         $repo = new PlayedGameRepository();
 
+        $currently = $repo->findPublicForUser( $streamer->user_id, 'currently_playing', 5 );
+        $curr_ids  = array_map( static fn( $g ) => $g->id, $currently );
+
+        $recent_raw = $repo->findPublicForUser( $streamer->user_id, 'recently_played', 5 + count( $curr_ids ) );
+        $recent     = array_slice(
+            array_values( array_filter( $recent_raw, static fn( $g ) => ! in_array( $g->id, $curr_ids, true ) ) ),
+            0,
+            5
+        );
+
         return [
             'items'       => [
-                'currently_playing' => niceeins_extension_played_games_to_array(
-                    $repo->findPublicForUser( $streamer->user_id, 'currently_playing', 5 ),
-                    $streamer
-                ),
-                'recently_played'   => niceeins_extension_played_games_to_array(
-                    $repo->findPublicForUser( $streamer->user_id, 'recently_played', 5 ),
-                    $streamer
-                ),
+                'currently_playing' => niceeins_extension_played_games_to_array( $currently, $streamer ),
+                'recently_played'   => niceeins_extension_played_games_to_array( $recent, $streamer ),
                 'top_rated'         => niceeins_extension_played_games_to_array(
                     $repo->findPublicForUser( $streamer->user_id, 'top_rated', 3 ),
                     $streamer
@@ -609,9 +617,26 @@ function niceeins_extension_games_public_widget( Streamer $streamer ): string
         )
     );
 
-    $value = is_string( $value ) ? $value : 'off';
+    if ( ! is_string( $value ) || $value === '' ) {
+        return 'off';
+    }
 
-    return in_array( $value, [ 'off', 'currently', 'recent', 'rated', 'all' ], true ) ? $value : 'off';
+    // Alte Einzel-Werte (Rückwärtskompatibilität) und Legacy-'all'.
+    if ( in_array( $value, [ 'off', 'currently', 'recent', 'rated', 'all' ], true ) ) {
+        return $value;
+    }
+
+    // Neues Format: kommagetrennte Modi (z. B. "currently,recent").
+    $modes   = array_filter( explode( ',', $value ), static fn( $m ) => in_array( $m, [ 'currently', 'recent', 'rated' ], true ) );
+    $count   = count( $modes );
+
+    if ( $count === 0 ) {
+        return 'off';
+    }
+    if ( $count === 1 ) {
+        return reset( $modes );
+    }
+    return 'all';
 }
 
 /**
@@ -1017,6 +1042,22 @@ function niceeins_extension_auth_meta( array $auth ): array
         ],
         static fn( $value ): bool => $value !== null && $value !== ''
     );
+}
+
+/**
+ * Gibt die für das Panel freigeschalteten Tab-IDs zurück.
+ * Leeres Array = alle Tabs aktiv (Standardverhalten).
+ *
+ * @return list<string>
+ */
+function niceeins_extension_panel_tabs( Streamer $streamer ): array
+{
+    $raw = $streamer->panel_tabs_enabled;
+    if ( $raw === '' ) {
+        return [];
+    }
+    $valid = [ 'home', 'plan', 'links', 'games', 'commands' ];
+    return array_values( array_filter( explode( ',', $raw ), static fn( $t ) => in_array( $t, $valid, true ) ) );
 }
 
 function niceeins_extension_cors_response( WP_REST_Response $response ): WP_REST_Response
