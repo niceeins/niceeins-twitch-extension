@@ -155,11 +155,13 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         if ( ! array_key_exists( 'game_suggestions_available', $cached['meta'] ) ) {
             $cached['meta']['game_suggestions_available'] = false;
         }
+        $games_public_widget              = niceeins_extension_games_public_widget( $streamer );
         $cached['meta']['resolved_by']    = $resolved['resolved_by'];
         $cached['meta']['auth']           = niceeins_extension_auth_meta( $auth );
         $cached['meta']['panel_tabs']     = niceeins_extension_panel_tabs( $streamer );
         $cached['meta']['badges_enabled'] = (bool) $streamer->panel_badges_enabled;
         $cached['meta']['schedule_public'] = $streamer->schedule_public_panel;
+        $cached['meta']['games_public_widget'] = $games_public_widget;
         $cached['meta']['cache']        = [
 			'hit' => true,
 			'ttl' => 60,
@@ -170,6 +172,9 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         if ( ! niceeins_extension_games_repository_available() ) {
             unset( $cached['games'] );
             unset( $cached['meta']['games_public_widget'], $cached['meta']['games_available'] );
+        } elseif ( $games_public_widget === 'off' ) {
+            unset( $cached['games'] );
+            $cached['meta']['games_available'] = true;
         }
 
         return niceeins_extension_cors_response( new WP_REST_Response( $cached, 200 ) );
@@ -628,16 +633,19 @@ function niceeins_extension_games_public_widget( Streamer $streamer ): string
     }
 
     // Neues Format: kommagetrennte Modi (z. B. "currently,recent").
-    $modes   = array_filter( explode( ',', $value ), static fn( $m ) => in_array( $m, [ 'currently', 'recent', 'rated' ], true ) );
-    $count   = count( $modes );
+    $modes = array_values(
+        array_unique(
+            array_filter(
+                explode( ',', $value ),
+                static fn( $m ) => in_array( $m, [ 'currently', 'recent', 'rated' ], true )
+            )
+        )
+    );
 
-    if ( $count === 0 ) {
+    if ( $modes === [] ) {
         return 'off';
     }
-    if ( $count === 1 ) {
-        return reset( $modes );
-    }
-    return 'all';
+    return implode( ',', $modes );
 }
 
 /**

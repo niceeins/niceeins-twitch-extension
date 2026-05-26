@@ -82,6 +82,11 @@ const DEFAULT_GAME_FILTER = {
   rated: 'top_rated',
   all: 'currently_playing',
 }
+const GAME_WIDGET_FILTERS = {
+  currently: 'currently_playing',
+  recent: 'recently_played',
+  rated: 'top_rated',
+}
 const BRAND_META = {
   bluesky: { label: 'Bluesky', color: '#1185fe', letter: 'B' },
   custom: { label: 'Link', color: '#64748b', letter: 'L' },
@@ -618,15 +623,38 @@ function HomeTab({ announcements, commands, games, live, nextStream, suggestions
 }
 
 function GamesTab({ games, widgetMode, suggestions, suggestionsUrl }) {
-  const initialFilter = DEFAULT_GAME_FILTER[widgetMode] || DEFAULT_GAME_FILTER.all
+  const widgetModes = String(widgetMode || 'all')
+    .split(',')
+    .map((mode) => mode.trim())
+    .filter(Boolean)
+  const enabledFilterIds = widgetModes.includes('all')
+    ? GAME_FILTERS.map((filter) => filter.id)
+    : widgetModes
+      .map((mode) => GAME_WIDGET_FILTERS[mode])
+      .filter(Boolean)
+  const visibleFilters = GAME_FILTERS.filter((filter) => enabledFilterIds.includes(filter.id))
+  const initialFilter = visibleFilters[0]?.id || DEFAULT_GAME_FILTER[widgetMode] || DEFAULT_GAME_FILTER.all
   const [activeFilter, setActiveFilter] = useState(initialFilter)
-  const currentFilter = GAME_FILTERS.find((filter) => filter.id === activeFilter) || GAME_FILTERS[0]
+  const currentFilter = visibleFilters.find((filter) => filter.id === activeFilter) || visibleFilters[0]
+
+  if (!currentFilter) {
+    return (
+      <section className="games" aria-label="Games">
+        <section className="state state-compact">
+          <span className="state-icon" aria-hidden="true">&#127918;</span>
+          <strong>Games ausgeblendet</strong>
+          <span>Für diesen Channel sind aktuell keine Games-Ansichten im Panel freigegeben.</span>
+        </section>
+      </section>
+    )
+  }
+
   const items = games?.[currentFilter.id]?.slice(0, currentFilter.id === 'top_rated' ? 3 : 5) || []
 
   return (
     <section className="games" aria-label="Games">
       <div className="game-filters" role="tablist" aria-label="Game Filter">
-        {GAME_FILTERS.map((filter) => (
+        {visibleFilters.map((filter) => (
           <button
             key={filter.id}
             className={filter.id === currentFilter.id ? 'game-filter game-filter-active' : 'game-filter'}
