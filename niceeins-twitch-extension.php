@@ -332,6 +332,7 @@ function niceeins_extension_schedule_to_array( Schedule $schedule, Streamer $str
                 : null,
         ],
         'is_recurring'     => $schedule->recurrence_rule === 'weekly',
+        'agenda_items'     => $schedule->agenda_items,
     ];
 }
 

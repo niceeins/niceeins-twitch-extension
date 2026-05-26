@@ -155,6 +155,45 @@ function ratingStars(rating) {
   return '★'.repeat(filled)
 }
 
+function formatAgendaTime(startsAt, offsetMinutes) {
+  if (!startsAt) return `+${offsetMinutes} min`
+
+  const date = new Date(startsAt)
+  if (Number.isNaN(date.getTime())) return `+${offsetMinutes} min`
+
+  date.setMinutes(date.getMinutes() + offsetMinutes)
+
+  return new Intl.DateTimeFormat('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+function Agenda({ items, streamStart }) {
+  if (!items || items.length === 0) return null
+
+  return (
+    <div className="agenda">
+      <span className="eyebrow">Ablauf</span>
+      <ul className="agenda-list">
+        {items.map((item, index) => {
+          const timeLabel = formatAgendaTime(streamStart, item.offset_minutes)
+
+          return (
+            <li key={`agenda-${item.offset_minutes}-${index}`} className="agenda-item">
+              <span className="agenda-time">{timeLabel}</span>
+              <span className="agenda-body">
+                <span className="agenda-title">{item.title}</span>
+                {item.category_name && <small className="agenda-category">{item.category_name}</small>}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 function isTwitchLink(link) {
   if (link.network === 'twitch') return true
 
@@ -595,6 +634,7 @@ function HomeTab({ announcements, commands, games, live, nextStream, suggestions
         ) : (
           <p>Aktuell ist kein öffentlicher Stream geplant.</p>
         )}
+      <Agenda items={nextStream?.agenda_items} streamStart={nextStream?.starts_at_local || nextStream?.starts_at} />
       </section>
 
       {homeGame?.game ? (
@@ -983,6 +1023,7 @@ function App() {
               ) : (
                 <p>Aktuell ist kein öffentlicher Stream geplant.</p>
               )}
+            <Agenda items={nextStream?.agenda_items} streamStart={nextStream?.starts_at_local || nextStream?.starts_at} />
             </section>
 
             {visibleUpcoming.length > 0 && (
