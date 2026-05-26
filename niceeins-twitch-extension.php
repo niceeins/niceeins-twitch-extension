@@ -155,10 +155,11 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         if ( ! array_key_exists( 'game_suggestions_available', $cached['meta'] ) ) {
             $cached['meta']['game_suggestions_available'] = false;
         }
-        $cached['meta']['resolved_by']  = $resolved['resolved_by'];
-        $cached['meta']['auth']         = niceeins_extension_auth_meta( $auth );
-        $cached['meta']['panel_tabs']   = niceeins_extension_panel_tabs( $streamer );
+        $cached['meta']['resolved_by']    = $resolved['resolved_by'];
+        $cached['meta']['auth']           = niceeins_extension_auth_meta( $auth );
+        $cached['meta']['panel_tabs']     = niceeins_extension_panel_tabs( $streamer );
         $cached['meta']['badges_enabled'] = (bool) $streamer->panel_badges_enabled;
+        $cached['meta']['schedule_public'] = $streamer->schedule_public_panel;
         $cached['meta']['cache']        = [
 			'hit' => true,
 			'ttl' => 60,
@@ -174,7 +175,7 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         return niceeins_extension_cors_response( new WP_REST_Response( $cached, 200 ) );
     }
 
-    $schedules     = $streamer->schedule_public
+    $schedules     = $streamer->schedule_public_panel
         ? ( new ScheduleRepository() )->findPublicUpcoming( $streamer->user_id, $limit )
         : [];
     $announcements = niceeins_extension_announcements_for_streamer( $streamer );
@@ -209,7 +210,7 @@ function niceeins_extension_get_panel_data( WP_REST_Request $request ): WP_REST_
         'meta'             => [
             'resolved_by'             => $resolved['resolved_by'],
             'generated_at'            => gmdate( 'c' ),
-            'schedule_public'         => $streamer->schedule_public,
+            'schedule_public'         => $streamer->schedule_public_panel,
             'announcements_available' => $announcements['available'],
             'game_suggestions_available' => $suggestions['available'],
             'games_available'         => $games['available'],
