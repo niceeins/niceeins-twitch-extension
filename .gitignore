@@ -2,6 +2,9 @@
 .codegraph/
 .serena/
 
+# PHP-Abhängigkeiten (nicht committen)
+vendor/
+
 # Node (nur im Root, falls je außerhalb von frontend/ installiert)
 node_modules/
 
@@ -9,6 +12,7 @@ node_modules/
 coverage/
 test-results/
 playwright-report/
+.phpunit.result.cache
 .cache/
 .vite/
 

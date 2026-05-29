@@ -1,6 +1,6 @@
 # AI Handoff — niceeins-twitch-extension
 
-Letztes Update: 2026-05-29 (CI/Tooling-Grundlage etabliert, Sprint 010 done)
+Letztes Update: 2026-05-29 (Sprint 012 done — PHPUnit + Playwright etabliert)
 
 ## Projekt
 
@@ -96,14 +96,40 @@ GitHub Actions CI ist eingerichtet unter `.github/workflows/ci.yml`.
 **CI-Job: Frontend**
 - Runner: ubuntu-latest
 - Node: 22
-- Schritte: `npm ci` → `npm run lint` → `npm run build`
+- Schritte: `npm ci` → `npm run lint` → `npm run build` → Playwright-Install → `npm run test:e2e`
 - Arbeitsverzeichnis: `frontend/`
+
+**CI-Job: PHP**
+- Runner: ubuntu-latest
+- PHP: 8.3
+- Schritte: `composer install` → `composer analyse` → `composer test`
 
 **dist/-Regel:**
 `frontend/dist/` ist **bewusst versioniert**. Das Plugin liefert die kompilierten React-Assets direkt aus dem Repo aus. `dist/` darf **nicht** zur Root-`.gitignore` hinzugefügt werden. Nach jeder Produktivänderung am Frontend muss `npm run build` lokal ausgeführt und der neue dist-Stand committet werden.
 
-**PHP-CI:**
-Kein `composer.json` vorhanden → PHP-Tooling (PHPStan Sprint 005, PHPUnit Sprint 006) steht noch aus. Kein PHP-Job in CI bis dahin.
+**PHPStan-Pflichtvalidierung:**
+Nach jeder PHP-Änderung muss `composer analyse` ausgeführt werden:
+```bash
+cd /var/www/wordpress/wp-content/plugins/niceeins-twitch-extension
+composer analyse
+```
+
+**PHPUnit-Pflichtvalidierung (ab Sprint 012, 2026-05-29):**
+Nach Änderungen an PHP-Hilfsfunktionen `composer test` ausführen:
+```bash
+cd /var/www/wordpress/wp-content/plugins/niceeins-twitch-extension
+composer test
+```
+
+**Playwright-Pflichtvalidierung (ab Sprint 012, 2026-05-29):**
+Nach Frontend-Änderungen `npm run test:e2e` ausführen (setzt `npm run build` voraus):
+```bash
+cd /var/www/wordpress/wp-content/plugins/niceeins-twitch-extension/frontend
+npm run build
+npm run test:e2e
+```
+
+**PHPStan-Baseline:** `phpstan-baseline.neon` enthält 19 geparkte Altlasten (defensive method_exists()/instanceof-Guards). Diese bei späteren PHP-Refactoring-Sprints bereinigen.
 
 **Lint-Warning (bekannt):**
 `App.jsx:863` — `react-hooks/exhaustive-deps` Warning (nicht blockierend, 0 Errors).
@@ -174,20 +200,21 @@ Siehe:
 cat .ai/current-sprint.md
 ```
 
-## Validierung
-
-Typische Checks:
+## Vollständige Validierung (alle Checks)
 
 ```bash
+cd /var/www/wordpress/wp-content/plugins/niceeins-twitch-extension
+composer analyse
+composer test
+
+cd frontend
+npm ci
 npm run lint
 npm run build
+npm run test:e2e
+
 git diff --check
-```
-
-Falls PHP geändert wird:
-
-```bash
-php -l niceeins-twitch-extension.php
+git status --short
 ```
 
 ## No Commit

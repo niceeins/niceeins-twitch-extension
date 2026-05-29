@@ -1,6 +1,6 @@
 # NiceEins Twitch Extension — AI Plan
 
-Letztes Update: 2026-05-29 (CI/Tooling-Grundlage etabliert, Sprint 010 done)
+Letztes Update: 2026-05-29 (Backend- und Panel-Smoke-Tests etabliert, Sprint 012 done)
 
 ## Produktziel
 
@@ -43,13 +43,13 @@ Die folgende Roadmap gilt als Reihenfolge für AI-Tooling-Einrichtung (vor/paral
 | 2 | **Serena** — Code-Navigations-Tool einrichten, repo-begrenzt | done (Sprint 002-serena-mcp-setup, 2026-05-29) |
 | 3 | **CodeGraph** — Abhängigkeitsgraph, repo-begrenzt | done (Sprint 003-codegraph-setup, 2026-05-29) |
 | 4 | **Context7** — API-/Framework-Doku-Lookups (Twitch API, React, Vite) | done (Sprint 004-context7-mcp-setup, 2026-05-29) |
-| 5 | **PHPStan** — Statische Analyse konfigurieren | offen — nächster Schritt |
-| 6 | **PHPUnit** — Unit-Test-Grundlage legen | offen |
-| 7 | **Playwright** — End-to-End-Tests für kritische Panel-Flows | offen |
+| 5 | **PHPStan** — Statische Analyse konfigurieren | done (Sprint 011-phpstan-backend, 2026-05-29) |
+| 6 | **PHPUnit** — Unit-Test-Grundlage legen | done (Sprint 012-backend-panel-smoke-tests, 2026-05-29) |
+| 7 | **Playwright** — End-to-End-Tests für kritische Panel-Flows | done (Sprint 012-backend-panel-smoke-tests, 2026-05-29) |
 | 8 | **GitHub/Bugtracker-Workflow** — Issue-Tracking, PR-Prozess | done (Sprint 008-github-bugtracker-workflow, 2026-05-29) |
 | 10 | **CI/Tooling-Grundlage** — GitHub Actions CI, npm-Checks, .gitignore | done (Sprint 010-twitch-extension-ci-tooling, 2026-05-29) |
 
-**Nächster optionaler Schritt:** PHPStan (Schritt 5) einrichten oder Panel Home Tab (Sprint 001-panel-home-tab) umsetzen.
+**Tooling-Roadmap vollständig.** Nächster Schritt: Panel Home Tab (Sprint 001-panel-home-tab) nach Freigabe.
 
 ## Feature-Roadmap
 
