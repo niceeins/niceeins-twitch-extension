@@ -1,0 +1,115 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function method_exists\(\) with ''Niceeins\\\\StreamSync\\\\Repository\\\\AnnouncementRepository'' and ''findActive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Niceeins\\\\StreamSync\\\\Repository\\\\CommandRepository'' and ''findByUser'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Niceeins\\\\StreamSync\\\\Repository\\\\GameSuggestionRepository'' and ''findPublicForUser'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Niceeins\\\\StreamSync\\\\Repository\\\\PlayedGameRepository'' and ''findPublicForUser'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\Announcement and ''severityColor'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\Announcement and ''severityLabel'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\Command and ''categoryLabel'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\Command and ''permissionColor'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\Command and ''permissionLabel'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\GameSuggestion and ''statusColor'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\GameSuggestion and ''statusLabel'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\PlayedGame and ''statusColor'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Niceeins\\StreamSync\\Repository\\PlayedGame and ''statusLabel'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Function niceeins_extension_resolve_streamer\(\) has parameter \$auth with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Instanceof between Niceeins\\StreamSync\\Repository\\Announcement and Niceeins\\StreamSync\\Repository\\Announcement will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Instanceof between Niceeins\\StreamSync\\Repository\\Command and Niceeins\\StreamSync\\Repository\\Command will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Instanceof between Niceeins\\StreamSync\\Repository\\GameSuggestion and Niceeins\\StreamSync\\Repository\\GameSuggestion will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Instanceof between Niceeins\\StreamSync\\Repository\\Social and Niceeins\\StreamSync\\Repository\\Social will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: niceeins-twitch-extension.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{id\: int\|null, network\: string, label\: string, url\: string, description\: string\|null, sort_order\: int\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: niceeins-twitch-extension.php

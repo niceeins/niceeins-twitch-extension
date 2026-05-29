@@ -1,0 +1,27 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    level: 6
+    paths:
+        - niceeins-twitch-extension.php
+    bootstrapFiles:
+        - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+        - phpstan-bootstrap.php
+    stubFiles:
+        - stubs/Niceeins/StreamSync/Repository/Schedule.php
+        - stubs/Niceeins/StreamSync/Repository/ScheduleRepository.php
+        - stubs/Niceeins/StreamSync/Repository/Social.php
+        - stubs/Niceeins/StreamSync/Repository/SocialRepository.php
+        - stubs/Niceeins/StreamSync/Repository/Streamer.php
+        - stubs/Niceeins/StreamSync/Repository/StreamerRepository.php
+        - stubs/Niceeins/StreamSync/Repository/Announcement.php
+        - stubs/Niceeins/StreamSync/Repository/AnnouncementRepository.php
+        - stubs/Niceeins/StreamSync/Repository/Command.php
+        - stubs/Niceeins/StreamSync/Repository/CommandRepository.php
+        - stubs/Niceeins/StreamSync/Repository/PlayedGame.php
+        - stubs/Niceeins/StreamSync/Repository/PlayedGameRepository.php
+        - stubs/Niceeins/StreamSync/Repository/GameSuggestion.php
+        - stubs/Niceeins/StreamSync/Repository/GameSuggestionRepository.php
+        - stubs/Niceeins/StreamSync/Support/TwitchHelper.php
