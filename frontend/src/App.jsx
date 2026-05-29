@@ -860,7 +860,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [data?.streamer?.twitch_login])
+  }, [data?.meta?.badges_enabled, data?.streamer?.twitch_login])
 
   const accent = data?.streamer?.accent_color || '#9146ff'
   const nextStream = data?.next_stream

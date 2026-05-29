@@ -1,6 +1,6 @@
 # AI Handoff — niceeins-twitch-extension
 
-Letztes Update: 2026-05-29 (Sprint 012 done — PHPUnit + Playwright etabliert)
+Letztes Update: 2026-05-29 (Sprint 013 done — react-hooks/exhaustive-deps Warning behoben, Extension ohne bekannte Lint-Warnungen)
 
 ## Projekt
 
@@ -131,8 +131,7 @@ npm run test:e2e
 
 **PHPStan-Baseline:** `phpstan-baseline.neon` enthält 19 geparkte Altlasten (defensive method_exists()/instanceof-Guards). Diese bei späteren PHP-Refactoring-Sprints bereinigen.
 
-**Lint-Warning (bekannt):**
-`App.jsx:863` — `react-hooks/exhaustive-deps` Warning (nicht blockierend, 0 Errors).
+**Lint-Status:** 0 Errors, 0 Warnings. Letzte bekannte Warning (`App.jsx:863` — `react-hooks/exhaustive-deps`) wurde in Sprint 013 behoben.
 
 ---
 

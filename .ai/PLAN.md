@@ -1,6 +1,6 @@
 # NiceEins Twitch Extension — AI Plan
 
-Letztes Update: 2026-05-29 (Backend- und Panel-Smoke-Tests etabliert, Sprint 012 done)
+Letztes Update: 2026-05-29 (Sprint 013 done — react-hooks/exhaustive-deps Warning behoben, 0 Lint-Warnungen)
 
 ## Produktziel
 

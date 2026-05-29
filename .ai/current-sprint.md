@@ -1,6 +1,6 @@
 # Current Sprint
 
-**Letzter abgeschlossener Sprint**: [012-backend-panel-smoke-tests](sprints/012-backend-panel-smoke-tests.md)
+**Letzter abgeschlossener Sprint**: [013-fix-react-hook-dependency-warning](sprints/013-fix-react-hook-dependency-warning.md)
 **Status**: done
 **Abgeschlossen**: 2026-05-29
 
@@ -13,6 +13,7 @@ Kein aktiver Sprint. Nächste Optionen:
 
 ## Vorherige Sprints
 
+- [013-fix-react-hook-dependency-warning](sprints/013-fix-react-hook-dependency-warning.md) — done (2026-05-29)
 - [012-backend-panel-smoke-tests](sprints/012-backend-panel-smoke-tests.md) — done (2026-05-29)
 - [011-phpstan-backend](sprints/011-phpstan-backend.md) — done (2026-05-29)
 - [010-twitch-extension-ci-tooling](sprints/010-twitch-extension-ci-tooling.md) — done (2026-05-29)
