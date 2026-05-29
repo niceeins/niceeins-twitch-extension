@@ -1,0 +1,17 @@
+# Tooling-Indizes (lokal, nicht committen)
+.codegraph/
+.serena/
+
+# Node (nur im Root, falls je außerhalb von frontend/ installiert)
+node_modules/
+
+# Test-Artefakte
+coverage/
+test-results/
+playwright-report/
+.cache/
+.vite/
+
+# Hinweis: frontend/dist/ ist BEWUSST versioniert.
+# Das Plugin liefert die kompilierten Assets direkt aus dem Repo aus.
+# Nicht ignorieren!

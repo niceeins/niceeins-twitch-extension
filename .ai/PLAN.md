@@ -1,5 +1,7 @@
 # NiceEins Twitch Extension — AI Plan
 
+Letztes Update: 2026-05-29 (CI/Tooling-Grundlage etabliert, Sprint 010 done)
+
 ## Produktziel
 
 Die Twitch Extension soll vom reinen Infopanel zu einer kompakten Zuschauer-Zentrale werden. Zuschauer sollen beim Öffnen sofort sehen:
@@ -31,7 +33,25 @@ Die Twitch Extension soll vom reinen Infopanel zu einer kompakten Zuschauer-Zent
 - Twitch JWT-Auth und CORS für Twitch iframe sind vorhanden
 - Caching über WordPress Transients
 
-## Roadmap
+## Tooling-Roadmap
+
+Die folgende Roadmap gilt als Reihenfolge für AI-Tooling-Einrichtung (vor/parallel zu Produktsprints):
+
+| # | Schritt | Status |
+|---|---------|--------|
+| 1 | **Guardrails** — Repo-Grenzen, Sicherheitsregeln, Schreibregeln | done (Sprint 001-ai-tooling-guardrails, 2026-05-29) |
+| 2 | **Serena** — Code-Navigations-Tool einrichten, repo-begrenzt | done (Sprint 002-serena-mcp-setup, 2026-05-29) |
+| 3 | **CodeGraph** — Abhängigkeitsgraph, repo-begrenzt | done (Sprint 003-codegraph-setup, 2026-05-29) |
+| 4 | **Context7** — API-/Framework-Doku-Lookups (Twitch API, React, Vite) | done (Sprint 004-context7-mcp-setup, 2026-05-29) |
+| 5 | **PHPStan** — Statische Analyse konfigurieren | offen — nächster Schritt |
+| 6 | **PHPUnit** — Unit-Test-Grundlage legen | offen |
+| 7 | **Playwright** — End-to-End-Tests für kritische Panel-Flows | offen |
+| 8 | **GitHub/Bugtracker-Workflow** — Issue-Tracking, PR-Prozess | done (Sprint 008-github-bugtracker-workflow, 2026-05-29) |
+| 10 | **CI/Tooling-Grundlage** — GitHub Actions CI, npm-Checks, .gitignore | done (Sprint 010-twitch-extension-ci-tooling, 2026-05-29) |
+
+**Nächster optionaler Schritt:** PHPStan (Schritt 5) einrichten oder Panel Home Tab (Sprint 001-panel-home-tab) umsetzen.
+
+## Feature-Roadmap
 
 ### Sprint 001 — Panel Home Tab
 
